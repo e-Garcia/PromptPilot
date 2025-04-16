@@ -1,15 +1,36 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<!-- IntelliJ Plugin Configuration File -->
 <idea-plugin>
     <id>com.github.egarcia.promptpilot</id>
     <name>PromptPilot</name>
-    <vendor>e-garcia</vendor>
+    <version>0.1.0</version>
+    <vendor>Erick Garcia</vendor>
+
+    <description>
+        PromptPilot is a Kotlin-based plugin for Android Studio that empowers developers to steer AI code generation with custom instructions across backends like Gemini and OpenAI.
+    </description>
+
+    <change-notes>
+        Initial release: prompt tuning for AI code generation in Android Studio.
+    </change-notes>
 
     <depends>com.intellij.modules.platform</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.egarcia.promptpilot.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.egarcia.promptpilot.startup.MyProjectActivity" />
+        <toolWindow
+                id="PromptPilotTool"
+                factoryClass="com.github.egarcia.promptpilot.toolWindow.PromptPilotToolWindowFactory"/>
+
+        <postStartupActivity
+                implementation="com.github.egarcia.promptpilot.startup.MyProjectActivity"/>
     </extensions>
+
+    <actions>
+        <action
+                id="PromptPilot.GenerateAction"
+                class="com.github.egarcia.promptpilot.PromptPilotAction"
+                text="Enhance with AI"
+                description="Generate AI-enhanced code instructions based on current context"/>
+    </actions>
 </idea-plugin>

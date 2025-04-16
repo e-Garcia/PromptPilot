@@ -1,51 +1,82 @@
-# PromptPilot
-
-![Build](https://github.com/e-Garcia/PromptPilot/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
-
-## Template ToDo list
-- [x] Create a new [IntelliJ Platform Plugin Template][template] project.
-- [ ] Get familiar with the [template documentation][template].
-- [ ] Adjust the [pluginGroup](./gradle.properties) and [pluginName](./gradle.properties), as well as the [id](./src/main/resources/META-INF/plugin.xml) and [sources package](./src/main/kotlin).
-- [ ] Adjust the plugin description in `README` (see [Tips][docs:plugin-description])
-- [ ] Review the [Legal Agreements](https://plugins.jetbrains.com/docs/marketplace/legal-agreements.html?from=IJPluginTemplate).
-- [ ] [Publish a plugin manually](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate) for the first time.
-- [ ] Set the `MARKETPLACE_ID` in the above README badges. You can obtain it once the plugin is published to JetBrains Marketplace.
-- [ ] Set the [Plugin Signing](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html?from=IJPluginTemplate) related [secrets](https://github.com/JetBrains/intellij-platform-plugin-template#environment-variables).
-- [ ] Set the [Deployment Token](https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html?from=IJPluginTemplate).
-- [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
+# ✈️ PromptPilot
+**Take the controls. Steer your AI.**
 
 <!-- Plugin description -->
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
-
-This specific section is a source for the [plugin.xml](/src/main/resources/META-INF/plugin.xml) file which will be extracted by the [Gradle](/build.gradle.kts) during the build process.
-
-To keep everything working, do not remove `<!-- ... -->` sections. 
+PromptPilot is an IntelliJ-based plugin purpose-built for Android Studio. It empowers Android developers to steer AI code generation using context-aware, team-aligned instructions — across multiple AI backends like Gemini and OpenAI.
 <!-- Plugin description end -->
 
-## Installation
-
-- Using the IDE built-in plugin system:
-  
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "PromptPilot"</kbd> >
-  <kbd>Install</kbd>
-  
-- Using JetBrains Marketplace:
-
-  Go to [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID) and install it by clicking the <kbd>Install to ...</kbd> button in case your IDE is running.
-
-  You can also download the [latest release](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID/versions) from JetBrains Marketplace and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
-
-- Manually:
-
-  Download the [latest release](https://github.com/e-Garcia/PromptPilot/releases/latest) and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
-
+Whether you're refining unit tests, generating patch files, or enforcing architecture standards, PromptPilot lets you take the pilot seat and guide your AI assistant exactly where you need it.
 
 ---
-Plugin based on the [IntelliJ Platform Plugin Template][template].
 
-[template]: https://github.com/JetBrains/intellij-platform-plugin-template
-[docs:plugin-description]: https://plugins.jetbrains.com/docs/intellij/plugin-user-experience.html#plugin-description-and-presentation
+## 🚀 Features
+
+- 🔌 **Multi-AI Support** – Works with Gemini, OpenAI (GPT), Tabnine, and more.
+- 🧠 **Context-Aware Prompting** – Tailor instructions based on selected code, file name, or project structure.
+- 🧪 **Unit Test Generator** – Generate unit tests aligned with your team’s best practices.
+- 🔍 **Patch-Focused Prompts** – Suggest minimal diffs instead of rewriting whole files.
+- 🧱 **Pluggable Architecture** – Easily add new AI backends or customize logic.
+- 💬 **UI for Prompt Tuning** – Pop-up dialogs to modify instructions on the fly.
+- 🔒 **Runs in Android Studio** – Native IntelliJ plugin that works seamlessly in Android development environments.
+
+---
+
+## 🧰 Installation
+
+Coming soon to the JetBrains Plugin Marketplace.
+
+To install manually:
+1. Clone this repository
+2. Build the plugin via Gradle
+3. Install it in Android Studio via **Preferences > Plugins > Install plugin from disk**
+
+---
+
+## 🤖 Supported Backends
+
+| Backend            | Status            | Notes                                       |
+|-------------------|-------------------|---------------------------------------------|
+| **Gemini (Google)** | 🛠️ In development | Targeting first alpha version               |
+| **OpenAI GPT-4**    | 🛠️ In development | Backend abstraction already planned         |
+| **Tabnine**         | 🔜 Not started     | Under consideration                         |
+
+---
+
+## 📂 Example Use Cases
+
+- Refactor code to MVVM/MVI/MVP pattern
+- Generate unit tests with correct mocking style (e.g. Mockito, Hilt)
+- Explain or summarize large methods
+- Enforce naming conventions or architecture boundaries
+- Generate changelogs based on diffs
+
+---
+
+## 📜 License
+PromptPilot is licensed under the [MIT License](LICENSE).
+
+---
+
+## ⚠️ Legal Disclaimer
+> This project was developed independently by Erick Garcia, Staff Android Engineer at Walmart Labs, during personal time using personal equipment. It is not affiliated with, sponsored by, or representative of Walmart Inc. or any of its proprietary tools or research. This open-source plugin does not use or reference any confidential, internal, or proprietary information.
+
+---
+
+## ✨ Contributing
+We welcome contributions, issues, and feedback! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started.
+
+---
+
+## 📈 Roadmap
+- [ ] Add Claude backend
+- [ ] Context-aware project-wide prompt tuning
+- [ ] JetBrains Marketplace release
+- [ ] Prompt profile presets per team
+- [ ] Inline code suggestions
+
+---
+
+## 🢁‍♂️ Maintainer
+Developed and maintained by [Erick Garcia](https://github.com/erickgarcia).
+
+_Last updated: April 15, 2025_
