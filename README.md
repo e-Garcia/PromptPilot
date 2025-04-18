@@ -58,7 +58,9 @@ PromptPilot is licensed under the [MIT License](LICENSE).
 ---
 
 ## ⚠️ Legal Disclaimer
-> This project was developed independently by Erick Garcia, Staff Android Engineer at Walmart Labs, during personal time using personal equipment. It is not affiliated with, sponsored by, or representative of Walmart Inc. or any of its proprietary tools or research. This open-source plugin does not use or reference any confidential, internal, or proprietary information.
+> This project was developed independently by Erick Josue Gabriel Garcia Garcia, Staff Android Engineer at Walmart Labs, during personal time using personal equipment. 
+> It is not affiliated with, sponsored by, or representative of Walmart Inc. or any of its proprietary tools or research. 
+> This open-source plugin does not use or reference any confidential, internal, or proprietary information.
 
 ---
 
@@ -77,6 +79,6 @@ We welcome contributions, issues, and feedback! See [CONTRIBUTING.md](CONTRIBUTI
 ---
 
 ## 🢁‍♂️ Maintainer
-Developed and maintained by [Erick Garcia](https://github.com/erickgarcia).
+Developed and maintained by [Erick Garcia](https://github.com/e-Garcia).
 
-_Last updated: April 15, 2025_
+_Last updated: April 18, 2025_

@@ -3,7 +3,7 @@
     <id>com.github.egarcia.promptpilot</id>
     <name>PromptPilot</name>
     <version>0.1.0</version>
-    <vendor>Erick Garcia</vendor>
+    <vendor email="erick@egarcia.dev">Erick Josue Gabriel Garcia Garcia</vendor>
 
     <description>
         PromptPilot is a Kotlin-based plugin for Android Studio that empowers developers to steer AI code generation with custom instructions across backends like Gemini and OpenAI.
