@@ -1,0 +1,12 @@
+task:
+  - 'task/**'
+
+bug:
+  - 'bugfix/**'
+
+documentation:
+  - 'docs/**'
+
+feature:
+  - 'feature/**'
+
