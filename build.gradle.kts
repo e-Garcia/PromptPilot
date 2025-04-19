@@ -1,6 +1,8 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask
+import java.nio.file.Paths
 
 plugins {
     id("java") // Java support
@@ -125,6 +127,13 @@ kover {
 }
 
 tasks {
+    named<RunIdeTask>("runIde") {
+        if (ideDirPath != null) {
+            ideDirectory.set(ideDirPath)
+            sandboxHome.set(Paths.get("build/sandbox/${ideProfile.get()}").toFile())
+        }
+    }
+
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }
@@ -132,25 +141,46 @@ tasks {
     publishPlugin {
         dependsOn(patchChangelog)
     }
-}
 
-intellijPlatformTesting {
-    runIde {
-        register("runIdeForUiTests") {
-            task {
-                jvmArgumentProviders += CommandLineArgumentProvider {
-                    listOf(
-                        "-Drobot-server.port=8082",
-                        "-Dide.mac.message.dialogs.as.sheets=false",
-                        "-Djb.privacy.policy.text=<!--999.999-->",
-                        "-Djb.consents.confirmation.enabled=false",
-                    )
-                }
-            }
-
-            plugins {
-                robotServerPlugin()
-            }
+    register("printIdeProfile") {
+        group = "PromptPilot"
+        description = "Prints the detected IDE profile and related configuration"
+        doLast {
+            println("\n🧭 IDE Profile: ${ideProfile.get()}")
+            println("🔧 IDE Path: ${ideDirPath?.absolutePath ?: "[JetBrains-managed IntelliJ]"}")
+            println("🧱 platformType: ${platformType.get()}")
+            println("📦 platformVersion: ${platformVersion.get()}")
+            println("📂 platformPlugins: ${platformPlugins.get()}")
         }
     }
 }
+
+
+// region Detect Android Studio
+val ideProfile = providers.gradleProperty("ideProfile").orElse("intellij")
+val ideDirPath = when (ideProfile.get()) {
+    "android" -> detectAndroidStudioPath()?.also {
+        println("Detected Android Studio at: ${it.absolutePath}")
+    } ?: run {
+        println("⚠️ Android Studio not found in default paths. Please set ANDROID_STUDIO_HOME or verify installation.")
+        null
+    }
+    "intellij" -> null
+    else -> null
+}
+val platformType = providers.gradleProperty("platformType").orElse("AI")
+val platformVersion = providers.gradleProperty("platformVersion").orElse("243.24978.46")
+val platformPlugins = providers.gradleProperty("platformPlugins").orElse("")
+
+fun detectAndroidStudioPath(): File? {
+    val defaultPaths = listOf(
+        "/Applications/Android Studio.app/Contents",             // macOS default
+        System.getenv("ANDROID_STUDIO_HOME"),                    // Optional env override
+        "C:\\Program Files\\Android\\Android Studio"             // Windows default
+    )
+    return defaultPaths.mapNotNull { path ->
+        path?.let { File(it) }?.takeIf { it.exists() }
+    }.firstOrNull()
+}
+// endregion
+
