@@ -47,6 +47,8 @@ dependencies {
         plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
 
         testFramework(TestFrameworkType.Platform)
+        androidStudio("2024.3.1.14")
+        bundledPlugin("org.jetbrains.android")
     }
 }
 
