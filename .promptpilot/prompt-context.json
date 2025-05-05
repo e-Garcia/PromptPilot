@@ -1,0 +1,12 @@
+{
+  "intent": "Generate unit tests",
+  "target": "Kotlin",
+  "outputFormat": "code",
+  "instructions": [
+    "Use Hilt for DI mocking",
+    "Follow Given/When/Then test structure",
+    "Prefer assertThat from Truth library",
+    "Avoid Robolectric unless explicitly annotated"
+  ],
+  "style": "Concise and Android idiomatic"
+}
