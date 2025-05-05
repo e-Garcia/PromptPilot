@@ -1,4 +1,5 @@
 package com.github.egarcia.promptpilot.toolWindow
+
 import com.github.egarcia.promptpilot.backends.GeminiPromptContext
 import com.github.egarcia.promptpilot.backends.GeminiPromptContextWriter
 import com.intellij.openapi.project.Project
@@ -48,8 +49,6 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         val panel = JPanel()
         // using BoxLayout.Y_AXIS, allows for easier management of the components without manual bounds calculations.
         panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
-        //panel.layout = FlowLayout(FlowLayout.LEFT) // alternative
-        //panel.layout = GridLayout(0, 1) // alternative
 
         val label = JBLabel(SETTINGS_LABEL_TEXT)
         // Use setAlignmentX to centralize or manage better the label.
@@ -74,9 +73,10 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
                 ),
                 style = "Concise and Android idiomatic"
             )
-
+            // Get the project root directory
             val projectRoot = File(project.basePath ?: ".")
-            GeminiPromptContextWriter.writeContextFile(projectRoot, context)
+            // Call the modified writeContextFile() method, passing the project.
+            GeminiPromptContextWriter.writeContextFile(project, projectRoot, context)
 
             Messages.showInfoMessage(
                 project,

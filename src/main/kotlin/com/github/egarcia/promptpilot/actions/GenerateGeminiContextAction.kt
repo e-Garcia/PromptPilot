@@ -28,8 +28,11 @@ class GenerateGeminiContextAction : AnAction("Generate Gemini Context") {
             style = "Concise and Android idiomatic"
         )
 
-        GeminiPromptContextWriter.writeContextFile(File(project.basePath ?: "."), context)
+        // Get the project root directory
+        val projectRoot = File(project.basePath ?: ".")
+        // Call the modified writeContextFile() method, passing the project.
+        GeminiPromptContextWriter.writeContextFile(project, projectRoot, context)
+        //Show the info message.
         Messages.showInfoMessage(project, "prompt-context.json generated for Gemini.", "PromptPilot")
     }
 }
-
