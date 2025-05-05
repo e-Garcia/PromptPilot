@@ -1,37 +1,71 @@
 package com.github.egarcia.promptpilot.toolWindow
-
 import com.github.egarcia.promptpilot.backends.GeminiPromptContext
 import com.github.egarcia.promptpilot.backends.GeminiPromptContextWriter
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
+import java.awt.Dimension
+import java.io.File
 import javax.swing.JButton
+import javax.swing.BoxLayout
+import javax.swing.JPanel
 
 class PromptPilotToolWindowFactory : ToolWindowFactory {
+
+    companion object {
+        private const val TOOL_WINDOW_TITLE = "PromptPilot"
+        private const val SETTINGS_LABEL_TEXT = "PromptPilot Settings"
+        private const val TOGGLE_PATCH_TEXT = "Use Patch Output Format"
+        private const val GENERATE_BUTTON_TEXT = "Generate Gemini Context"
+        private const val CONTEXT_FILE_SUCCESS_MESSAGE = "prompt-context.json generated with output: %s."
+        private const val DEFAULT_OUTPUT_FORMAT = "patch"
+        private const val OTHER_OUTPUT_FORMAT = "code"
+    }
+
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val panel = JBPanel<JBPanel<*>>()
-        panel.layout = null
+        // Use a helper function to create the main panel with a proper layout
+        val mainPanel = createMainPanel(project)
 
-        val label = JBLabel("PromptPilot Settings")
-        label.setBounds(10, 10, 300, 20)
+        // Wrap the main panel in a scroll pane for larger content
+        val scrollPane = JBScrollPane(mainPanel)
 
-        val togglePatch = JBCheckBox("Use Patch Output Format", true)
-        togglePatch.setBounds(10, 40, 250, 20)
+        // Use SimpleToolWindowPanel for better integration with the tool window
+        val contentPanel = SimpleToolWindowPanel(true, true)
+        contentPanel.setContent(scrollPane)
 
-        val generateButton = JButton("Generate Gemini Context")
-        generateButton.setBounds(10, 70, 250, 30)
+        // Create and add the content to the tool window
+        val contentManager = toolWindow.contentManager
+        val content = contentManager.factory.createContent(contentPanel, "", false)
+        contentManager.addContent(content)
+    }
 
+    private fun createMainPanel(project: Project): JPanel {
+        val panel = JPanel()
+        // using BoxLayout.Y_AXIS, allows for easier management of the components without manual bounds calculations.
+        panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
+        //panel.layout = FlowLayout(FlowLayout.LEFT) // alternative
+        //panel.layout = GridLayout(0, 1) // alternative
+
+        val label = JBLabel(SETTINGS_LABEL_TEXT)
+        // Use setAlignmentX to centralize or manage better the label.
+        label.alignmentX = java.awt.Component.LEFT_ALIGNMENT
+
+        val togglePatch = JBCheckBox(TOGGLE_PATCH_TEXT, true)
+        togglePatch.alignmentX = java.awt.Component.LEFT_ALIGNMENT
+
+        val generateButton = JButton(GENERATE_BUTTON_TEXT)
+        generateButton.alignmentX = java.awt.Component.LEFT_ALIGNMENT
         generateButton.addActionListener {
-            val outputFormat = if (togglePatch.isSelected) "patch" else "code"
+            val outputFormat = if (togglePatch.isSelected) DEFAULT_OUTPUT_FORMAT else OTHER_OUTPUT_FORMAT
             val context = GeminiPromptContext(
                 intent = "Generate unit tests",
                 target = "Kotlin",
-                output_format = outputFormat,
+                outputFormat = outputFormat,
                 instructions = listOf(
                     "Use Hilt for DI mocking",
                     "Follow Given/When/Then test structure",
@@ -41,25 +75,23 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
                 style = "Concise and Android idiomatic"
             )
 
-            val projectRoot = java.io.File(project.basePath ?: ".")
+            val projectRoot = File(project.basePath ?: ".")
             GeminiPromptContextWriter.writeContextFile(projectRoot, context)
 
-            com.intellij.openapi.ui.Messages.showInfoMessage(
+            Messages.showInfoMessage(
                 project,
-                "prompt-context.json generated with output: $outputFormat.",
-                "PromptPilot"
+                String.format(CONTEXT_FILE_SUCCESS_MESSAGE, outputFormat),
+                TOOL_WINDOW_TITLE
             )
         }
 
+        // Add components to the panel with preferred gaps between components.
         panel.add(label)
+        panel.add(javax.swing.Box.createRigidArea(Dimension(0, 10)))
         panel.add(togglePatch)
+        panel.add(javax.swing.Box.createRigidArea(Dimension(0, 10)))
         panel.add(generateButton)
 
-        val contentPanel = SimpleToolWindowPanel(true, true)
-        contentPanel.setContent(JBScrollPane(panel))
-
-        val contentManager = toolWindow.contentManager
-        val content = contentManager.factory.createContent(contentPanel, "", false)
-        contentManager.addContent(content)
+        return panel
     }
 }

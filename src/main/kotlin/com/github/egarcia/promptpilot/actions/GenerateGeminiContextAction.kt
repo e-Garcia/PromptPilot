@@ -18,7 +18,7 @@ class GenerateGeminiContextAction : AnAction("Generate Gemini Context") {
         val context = GeminiPromptContext(
             intent = "Generate unit tests",
             target = "Kotlin",
-            output_format = "patch",
+            outputFormat = "patch",
             instructions = listOf(
                 "Use Hilt for DI mocking",
                 "Follow Given/When/Then test structure",
