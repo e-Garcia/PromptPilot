@@ -14,6 +14,9 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import java.awt.Dimension
 import java.io.File
+import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import javax.swing.BoxLayout
 import javax.swing.JButton
@@ -33,6 +36,7 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         private const val CREATE_REPO_CONTEXT_BUTTON_TEXT = "Create Repo Context File"
         private const val REPO_CONTEXT_FILE_NAME = "repo-context.md"
         private const val CONTEXT_DIRECTORY = ".promptpilot"
+        private const val SAMPLE_CONTEXT_FILE_NAME = "sample-context.md"
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
@@ -123,25 +127,14 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         if (!repoContextFile.exists()) {
             try {
                 repoContextFile.createNewFile()
-                // Optionally, add some default content to the file
-                repoContextFile.writeText(
-                    """
-            # PromptPilot Context Instructions
-            
-            Describe your project setup, preferred libraries, architecture, or anything else the AI should know when generating code.
-            
-            Example:
-- Architecture: We use MVVM with a clean architecture approach.
-- UI: All UI should be built using Jetpack Compose.
-- Networking: Retrofit for network requests, with coroutines for asynchronous handling.
-- DI: Hilt for dependency injection.
-- Error handling: Use sealed classes for handling network and other errors.
-- State management: Prefer Kotlin StateFlow over LiveData.
-- Style: Follow the Android Kotlin Style Guide.
-- Code should handle potential network errors gracefully.
-- Asynchronous operations should use Coroutines.
-            """.trimIndent()
-                )
+
+                // Load default content from sample-context.md
+                val sampleContextStream: InputStream? = javaClass.classLoader.getResourceAsStream(SAMPLE_CONTEXT_FILE_NAME)
+                val defaultContent = sampleContextStream?.bufferedReader()?.use { it.readText() }
+                    ?: throw IllegalStateException("$SAMPLE_CONTEXT_FILE_NAME not found in resources")
+
+                // Write the default content to the new file
+                repoContextFile.writeText(defaultContent)
 
                 // Refresh the file in the VFS
                 LocalFileSystem.getInstance().refreshAndFindFileByIoFile(repoContextFile)
@@ -184,3 +177,4 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         }
     }
 }
+
