@@ -1,7 +1,5 @@
 package com.github.egarcia.promptpilot.toolWindow
 
-import com.github.egarcia.promptpilot.backends.GeminiPromptContext
-import com.github.egarcia.promptpilot.backends.GeminiPromptContextWriter
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -15,8 +13,6 @@ import com.intellij.ui.components.JBScrollPane
 import java.awt.Dimension
 import java.io.File
 import java.io.InputStream
-import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import javax.swing.BoxLayout
 import javax.swing.JButton
@@ -125,6 +121,7 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
 
         if (repoContextFile.exists()) {
             if (repoContextFile.delete()) {
+                LocalFileSystem.getInstance().refreshAndFindFileByIoFile(contextDir)?.refresh(true, true)
                 Messages.showInfoMessage(
                     project,
                     "Repo context file deleted successfully.",
