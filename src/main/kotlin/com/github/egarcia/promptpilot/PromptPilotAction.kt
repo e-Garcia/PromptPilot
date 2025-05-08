@@ -1,9 +1,14 @@
 package com.github.egarcia.promptpilot
 
+import com.github.egarcia.promptpilot.backends.GeminiPromptContext
+import com.google.gson.Gson
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import java.io.File
+import java.io.IOException
 
 class PromptPilotAction : AnAction("Enhance with AI") {
 
@@ -18,8 +23,15 @@ class PromptPilotAction : AnAction("Enhance with AI") {
 
         val selectedText = editor.selectionModel.selectedText ?: "No code selected."
 
-        // This is where you'd pass `selectedText` to your AI backend of choice
-        val aiGeneratedSuggestion = "// [AI suggestion would go here for]:\n$selectedText"
+        val context = loadPromptContext(project)
+
+        if (context == null) {
+            Messages.showErrorDialog(project, "Failed to load prompt context. Check .promptpilot/prompt-context.json", "PromptPilot")
+            return
+        }
+
+        // This is where you'd pass `selectedText` and `context` to your AI backend
+        val aiGeneratedSuggestion = "// [AI suggestion would go here for]:\n$selectedText\nContext: $context"
 
         Messages.showMultilineInputDialog(
             project,
@@ -29,6 +41,17 @@ class PromptPilotAction : AnAction("Enhance with AI") {
             null,
             null
         )
+    }
+
+    private fun loadPromptContext(project: Project): GeminiPromptContext? {
+        val contextFile = File(project.basePath, ".promptpilot/prompt-context.json")
+        return try {
+            val json = contextFile.readText()
+            Gson().fromJson(json, GeminiPromptContext::class.java)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
     }
 
     override fun update(event: AnActionEvent) {
