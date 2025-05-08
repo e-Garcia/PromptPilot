@@ -2,9 +2,11 @@ package com.github.egarcia.promptpilot.toolWindow
 
 import com.github.egarcia.promptpilot.backends.GeminiPromptContext
 import com.github.egarcia.promptpilot.backends.GeminiPromptContextWriter
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBCheckBox
@@ -12,8 +14,9 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import java.awt.Dimension
 import java.io.File
-import javax.swing.JButton
+import java.nio.file.Paths
 import javax.swing.BoxLayout
+import javax.swing.JButton
 import javax.swing.JPanel
 
 class PromptPilotToolWindowFactory : ToolWindowFactory {
@@ -23,9 +26,13 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         private const val SETTINGS_LABEL_TEXT = "PromptPilot Settings"
         private const val TOGGLE_PATCH_TEXT = "Use Patch Output Format"
         private const val GENERATE_BUTTON_TEXT = "Generate Gemini Context"
-        private const val CONTEXT_FILE_SUCCESS_MESSAGE = "prompt-context.json generated with output: %s."
+        private const val CONTEXT_FILE_SUCCESS_MESSAGE =
+            "prompt-context.json generated with output: %s."
         private const val DEFAULT_OUTPUT_FORMAT = "patch"
         private const val OTHER_OUTPUT_FORMAT = "code"
+        private const val CREATE_REPO_CONTEXT_BUTTON_TEXT = "Create Repo Context File"
+        private const val REPO_CONTEXT_FILE_NAME = "repo-context.md"
+        private const val CONTEXT_DIRECTORY = ".promptpilot"
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
@@ -60,7 +67,8 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         val generateButton = JButton(GENERATE_BUTTON_TEXT)
         generateButton.alignmentX = java.awt.Component.LEFT_ALIGNMENT
         generateButton.addActionListener {
-            val outputFormat = if (togglePatch.isSelected) DEFAULT_OUTPUT_FORMAT else OTHER_OUTPUT_FORMAT
+            val outputFormat =
+                if (togglePatch.isSelected) DEFAULT_OUTPUT_FORMAT else OTHER_OUTPUT_FORMAT
             val context = GeminiPromptContext(
                 intent = "Generate unit tests",
                 target = "Kotlin",
@@ -85,13 +93,94 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
             )
         }
 
+        val createRepoContextButton = JButton(CREATE_REPO_CONTEXT_BUTTON_TEXT)
+        createRepoContextButton.alignmentX = java.awt.Component.LEFT_ALIGNMENT
+        createRepoContextButton.addActionListener {
+            createRepoContextFile(project)
+        }
+
         // Add components to the panel with preferred gaps between components.
         panel.add(label)
         panel.add(javax.swing.Box.createRigidArea(Dimension(0, 10)))
         panel.add(togglePatch)
         panel.add(javax.swing.Box.createRigidArea(Dimension(0, 10)))
         panel.add(generateButton)
+        panel.add(javax.swing.Box.createRigidArea(Dimension(0, 10)))
+        panel.add(createRepoContextButton)
 
         return panel
+    }
+
+    private fun createRepoContextFile(project: Project) {
+        val projectRoot = File(project.basePath ?: ".")
+        val contextDir = Paths.get(projectRoot.path, CONTEXT_DIRECTORY).toFile()
+        if (!contextDir.exists()) {
+            contextDir.mkdirs()
+        }
+
+        val repoContextFile = File(contextDir, REPO_CONTEXT_FILE_NAME)
+
+        if (!repoContextFile.exists()) {
+            try {
+                repoContextFile.createNewFile()
+                // Optionally, add some default content to the file
+                repoContextFile.writeText(
+                    """
+            # PromptPilot Context Instructions
+            
+            Describe your project setup, preferred libraries, architecture, or anything else the AI should know when generating code.
+            
+            Example:
+- Architecture: We use MVVM with a clean architecture approach.
+- UI: All UI should be built using Jetpack Compose.
+- Networking: Retrofit for network requests, with coroutines for asynchronous handling.
+- DI: Hilt for dependency injection.
+- Error handling: Use sealed classes for handling network and other errors.
+- State management: Prefer Kotlin StateFlow over LiveData.
+- Style: Follow the Android Kotlin Style Guide.
+- Code should handle potential network errors gracefully.
+- Asynchronous operations should use Coroutines.
+            """.trimIndent()
+                )
+
+                // Refresh the file in the VFS
+                LocalFileSystem.getInstance().refreshAndFindFileByIoFile(repoContextFile)
+                val virtualFile = LocalFileSystem.getInstance().findFileByIoFile(repoContextFile)
+                if (virtualFile != null) {
+                    // Open the file in the editor
+                    FileEditorManager.getInstance(project).openFile(virtualFile, true)
+                } else {
+                    Messages.showErrorDialog(
+                        project,
+                        "Could not find the created file.",
+                        TOOL_WINDOW_TITLE
+                    )
+                }
+
+            } catch (e: Exception) {
+                Messages.showErrorDialog(
+                    project,
+                    "Error creating file: ${e.message}",
+                    TOOL_WINDOW_TITLE
+                )
+            }
+        } else {
+            Messages.showInfoMessage(
+                project,
+                "Repository context file already exists.",
+                TOOL_WINDOW_TITLE
+            )
+            // Open the existing file
+            val virtualFile = LocalFileSystem.getInstance().findFileByIoFile(repoContextFile)
+            if (virtualFile != null) {
+                FileEditorManager.getInstance(project).openFile(virtualFile, true)
+            } else {
+                Messages.showErrorDialog(
+                    project,
+                    "Could not find the existing file.",
+                    TOOL_WINDOW_TITLE
+                )
+            }
+        }
     }
 }
