@@ -2,7 +2,6 @@
 <idea-plugin>
     <id>com.github.egarcia.promptpilot</id>
     <name>PromptPilot</name>
-    <version>0.1.0</version>
     <vendor email="erick@egarcia.dev">Erick Josue Gabriel Garcia Garcia</vendor>
 
     <description>
@@ -31,6 +30,8 @@
                 id="PromptPilot.GenerateAction"
                 class="com.github.egarcia.promptpilot.PromptPilotAction"
                 text="Enhance with AI"
-                description="Generate AI-enhanced code instructions based on current context"/>
+                description="Generate AI-enhanced code instructions based on current context">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
     </actions>
 </idea-plugin>
