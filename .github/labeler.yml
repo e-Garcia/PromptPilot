@@ -1,12 +1,8 @@
 task:
-  - 'task/**'
-
+  - task/**
 bug:
-  - 'bugfix/**'
-
+  - bugfix/**
 documentation:
-  - 'docs/**'
-
+  - docs/**
 feature:
-  - 'feature/**'
-
+  - feature/**

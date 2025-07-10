@@ -78,7 +78,7 @@ We welcome contributions, issues, and feedback! See [CONTRIBUTING.md](CONTRIBUTI
 
 ---
 
-## 🢁‍♂️ Maintainer
+## 🢁‍ Maintainer
 Developed and maintained by [Erick Garcia](https://github.com/e-Garcia).
 
 _Last updated: April 18, 2025_
