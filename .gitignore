@@ -3,4 +3,5 @@
 .intellijPlatform
 .qodana
 build
+/local.properties
 /.promptpilot/repo-context.md

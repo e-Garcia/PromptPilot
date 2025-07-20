@@ -7,11 +7,11 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 
-data class GeminiPromptContext(
+data class AIPromptContext(
     val intent: String,
     val target: String,
     val outputFormat: String,
-    val instructions: List<String>,
+    val instructions: String,
     val style: String
 )
 
@@ -22,7 +22,7 @@ object GeminiPromptContextWriter {
     fun writeContextFile(
         project: Project,
         projectRoot: File,
-        context: GeminiPromptContext,
+        context: AIPromptContext,
         fileName: String = DEFAULT_FILE_NAME
     ) {
         require(projectRoot.exists() && projectRoot.isDirectory) { "Invalid project root directory: ${projectRoot.absolutePath}" }

@@ -1,6 +1,6 @@
 package com.github.egarcia.promptpilot.actions
 
-import com.github.egarcia.promptpilot.backends.GeminiPromptContext
+import com.github.egarcia.promptpilot.backends.AIPromptContext
 import com.github.egarcia.promptpilot.backends.GeminiPromptContextWriter
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -15,16 +15,15 @@ class GenerateGeminiContextAction : AnAction("Generate Gemini Context") {
             return
         }
 
-        val context = GeminiPromptContext(
+        val context = AIPromptContext(
             intent = "Generate unit tests",
             target = "Kotlin",
             outputFormat = "patch",
-            instructions = listOf(
-                "Use Hilt for DI mocking",
-                "Follow Given/When/Then test structure",
-                "Prefer assertThat from Truth library",
-                "Avoid Robolectric unless explicitly annotated"
-            ),
+            instructions =
+                "Use Hilt for DI mocking"
+                        + "/n" + "Follow Given/When/Then test structure"
+                        + "/n" + "Prefer assertThat from Truth library"
+                        + "/n" + "Avoid Robolectric unless explicitly annotated",
             style = "Concise and Android idiomatic"
         )
 
@@ -33,6 +32,10 @@ class GenerateGeminiContextAction : AnAction("Generate Gemini Context") {
         // Call the modified writeContextFile() method, passing the project.
         GeminiPromptContextWriter.writeContextFile(project, projectRoot, context)
         //Show the info message.
-        Messages.showInfoMessage(project, "prompt-context.json generated for Gemini.", "PromptPilot")
+        Messages.showInfoMessage(
+            project,
+            "prompt-context.json generated for Gemini.",
+            "PromptPilot"
+        )
     }
 }

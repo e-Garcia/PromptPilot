@@ -3,7 +3,7 @@ package com.github.egarcia.promptpilot.services
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.github.egarcia.promptpilot.MyBundle
+import com.github.egarcia.promptpilot.resources.MyBundle
 
 @Service(Service.Level.PROJECT)
 class MyProjectService(project: Project) {

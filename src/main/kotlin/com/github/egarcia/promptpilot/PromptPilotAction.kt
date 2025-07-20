@@ -1,7 +1,9 @@
 package com.github.egarcia.promptpilot
 
-import com.github.egarcia.promptpilot.backends.GeminiPromptContext
-import com.google.gson.Gson
+import com.github.egarcia.promptpilot.backends.AIPromptContext
+import com.github.egarcia.promptpilot.resources.MyBundle
+import com.github.egarcia.promptpilot.resources.Strings
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -10,14 +12,18 @@ import com.intellij.openapi.ui.Messages
 import java.io.File
 import java.io.IOException
 
-class PromptPilotAction : AnAction("Enhance with AI") {
+class PromptPilotAction : AnAction("Enhance with PromptPilot") {
 
     override fun actionPerformed(event: AnActionEvent) {
         val editor = event.getData(CommonDataKeys.EDITOR)
         val project = event.project
 
         if (editor == null || project == null) {
-            Messages.showMessageDialog(project, "No editor context available.", "PromptPilot", Messages.getErrorIcon())
+            Messages.showMessageDialog(
+                project, "No editor context available.", MyBundle.message(
+                    Strings.TOOL_WINDOW_TITLE
+                ), Messages.getErrorIcon()
+            )
             return
         }
 
@@ -26,12 +32,17 @@ class PromptPilotAction : AnAction("Enhance with AI") {
         val context = loadPromptContext(project)
 
         if (context == null) {
-            Messages.showErrorDialog(project, "Failed to load prompt context. Check .promptpilot/prompt-context.json", "PromptPilot")
+            Messages.showErrorDialog(
+                project,
+                "Failed to load prompt context. Check .promptpilot/prompt-context.json",
+                "PromptPilot"
+            )
             return
         }
 
         // This is where you'd pass `selectedText` and `context` to your AI backend
-        val aiGeneratedSuggestion = "// [AI suggestion would go here for]:\n$selectedText\nContext: $context"
+        val aiGeneratedSuggestion =
+            "// [AI suggestion would go here for]:\n$selectedText\nContext: $context"
 
         Messages.showMultilineInputDialog(
             project,
@@ -43,11 +54,20 @@ class PromptPilotAction : AnAction("Enhance with AI") {
         )
     }
 
-    private fun loadPromptContext(project: Project): GeminiPromptContext? {
-        val contextFile = File(project.basePath, ".promptpilot/prompt-context.json")
+    private fun loadPromptContext(project: Project): AIPromptContext? {
+        val contextFile = File(
+            project.basePath,
+            "${FileConstants.REPO_CONTEXT_DIR}${FileConstants.REPO_CONTEXT_FILENAME}"
+        )
         return try {
-            val json = contextFile.readText()
-            Gson().fromJson(json, GeminiPromptContext::class.java)
+            val contextInstructions = contextFile.readText()
+            return AIPromptContext(
+                intent = "Enhance code with AI suggestions",
+                target = "Selected code in editor",
+                outputFormat = "Code",
+                instructions = contextInstructions,
+                style = "Professional"
+            )
         } catch (e: IOException) {
             e.printStackTrace()
             null
@@ -59,5 +79,8 @@ class PromptPilotAction : AnAction("Enhance with AI") {
         val editor = event.getData(CommonDataKeys.EDITOR)
         val hasSelection = editor?.selectionModel?.hasSelection() ?: false
         event.presentation.isEnabled = hasSelection
+    }
+    override fun getActionUpdateThread(): ActionUpdateThread {
+        return ActionUpdateThread.BGT
     }
 }

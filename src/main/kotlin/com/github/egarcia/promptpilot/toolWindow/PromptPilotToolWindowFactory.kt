@@ -1,6 +1,10 @@
-// Updated Kotlin class with new features
 package com.github.egarcia.promptpilot.toolWindow
 
+import com.github.egarcia.promptpilot.FileConstants
+import com.github.egarcia.promptpilot.resources.MyBundle
+import com.github.egarcia.promptpilot.SettingsKeys
+import com.github.egarcia.promptpilot.resources.Dimensions
+import com.github.egarcia.promptpilot.resources.Strings
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
@@ -21,31 +25,23 @@ import java.awt.FlowLayout
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
-import javax.swing.*
+import javax.swing.BorderFactory
+import javax.swing.Box
+import javax.swing.BoxLayout
+import javax.swing.JButton
+import javax.swing.JPanel
 import javax.swing.table.DefaultTableModel
 
 class PromptPilotToolWindowFactory : ToolWindowFactory {
-
-    companion object {
-        private const val TOOL_WINDOW_TITLE = "PromptPilot"
-        private const val SETTINGS_LABEL_TEXT = "PromptPilot Settings"
-        private const val TOGGLE_PATCH_TEXT = "Use Patch Output Format"
-        private const val CREATE_REPO_CONTEXT_BUTTON_TEXT = "Create Repo Context"
-        private const val DELETE_REPO_CONTEXT_BUTTON_TEXT = "Delete Repo Context"
-        private const val REPO_CONTEXT_FILE_NAME = "repo-context.md"
-        private const val OUTPUT_CONTEXT_DIRECTORY = ".promptpilot"
-        private const val SOURCE_CONTEXT_DIRECTORY = ".promptpilot/source-context"
-        private const val SAMPLE_CONTEXT_FILE_NAME = "sample-context.md"
-        private const val PATCH_FORMAT_INSTRUCTION = "- output: use the patch format"
-        private const val FILES_LABEL_TEXT = "Files in Source Context Directory ($SOURCE_CONTEXT_DIRECTORY):"
-        private const val ADD_NEW_SOURCE_FILE_BUTTON_TEXT = "Add New Source File"
-        private const val DEFAULT_NEW_FILE_NAME = "new-context-file.md"
-        private const val LAYOUT_DEBUG_ENABLED = false // Set to true to enable layout debugging
-    }
+    val isDebugLayoutEnabled = SettingsKeys.DEBUG_LAYOUT
+    val selectedColumnIndex = 0
+    val fileNameColumnIndex = 1
 
     private lateinit var filesTableModel: DefaultTableModel
     private lateinit var filesTable: JBTable
     private lateinit var projectInstance: Project
+    private val windowTitle by lazy { MyBundle.message(Strings.TOOL_WINDOW_TITLE) }
+    private val unknownErrorMessage by lazy { MyBundle.message(Strings.ERROR_UNKNOWN) }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         this.projectInstance = project
@@ -59,20 +55,15 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
     }
 
     private fun createMainPanel(project: Project): JPanel {
-
-        // Top panel setup
         val topSettingsPanel = createSettingsPanel(
             project,
-            SETTINGS_LABEL_TEXT,
-            TOGGLE_PATCH_TEXT,
-            CREATE_REPO_CONTEXT_BUTTON_TEXT,
-            DELETE_REPO_CONTEXT_BUTTON_TEXT
+            MyBundle.message(Strings.SETTINGS_LABEL),
+            MyBundle.message(Strings.TOGGLE_PATCH_TEXT),
+            MyBundle.message(Strings.CREATE_REPO_CONTEXT_BUTTON),
+            MyBundle.message(Strings.DELETE_REPO_CONTEXT_BUTTON)
         )
 
-        // Files Panel setup
         val filesScrollPane = createFilesTablePanel(project)
-
-        // File actions panel setup
         val fileActionsPanel = createFileActionsPanel(project)
 
         val panel = JPanel()
@@ -80,9 +71,9 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         panel.alignmentX = Component.LEFT_ALIGNMENT
 
         panel.add(topSettingsPanel)
-        panel.add(Box.createVerticalStrut(5))
+        panel.add(Box.createVerticalStrut(Dimensions.SPACING_X_SMALL))
         panel.add(filesScrollPane)
-        panel.add(Box.createVerticalStrut(5))
+        panel.add(Box.createVerticalStrut(Dimensions.SPACING_X_SMALL))
         panel.add(fileActionsPanel)
 
         updateFilesInPanel(project)
@@ -98,27 +89,40 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
 
         val fileName = Messages.showInputDialog(
             project,
-            "Enter the name for the new source file (e.g., my-feature.md):",
-            "New Source File Name",
+            MyBundle.message(Strings.NEW_SOURCE_FILE_DIALOG_MESSAGE),
+            MyBundle.message(Strings.NEW_SOURCE_FILE_DIALOG_TITLE),
             Messages.getQuestionIcon(),
-            DEFAULT_NEW_FILE_NAME,
+            FileConstants.DEFAULT_NEW_FILE,
             null
         ) ?: return
 
         val sanitized = fileName.replace(File.separatorChar, '_').replace("..", "_")
-        val finalName = if (!sanitized.endsWith(".md")) "$sanitized.md" else sanitized
+        val finalName = if (!sanitized.endsWith(FileConstants.DEFAULT_FILE_EXTENSION)) "$sanitized${FileConstants.DEFAULT_FILE_EXTENSION}" else sanitized
         val newFile = File(sourceDir, finalName)
 
         if (newFile.exists()) {
-            Messages.showWarningDialog(project, "File '$finalName' already exists.", TOOL_WINDOW_TITLE)
+            Messages.showWarningDialog(
+                project,
+                MyBundle.message(Strings.WARNING_FILE_ALREADY_EXISTS, finalName),
+                windowTitle
+            )
             return
         }
 
-        val content = javaClass.classLoader.getResourceAsStream(SAMPLE_CONTEXT_FILE_NAME)?.bufferedReader()?.use { it.readText() }
-            ?: run {
-                Messages.showErrorDialog(project, "$SAMPLE_CONTEXT_FILE_NAME not found.", TOOL_WINDOW_TITLE)
-                return
-            }
+        val content =
+            javaClass.classLoader.getResourceAsStream(FileConstants.SAMPLE_CONTEXT_FILENAME)
+                ?.bufferedReader()?.use { it.readText() }
+                ?: run {
+                    Messages.showErrorDialog(
+                        project,
+                        MyBundle.message(
+                            Strings.ERROR_FILE_NOT_FOUND,
+                            FileConstants.SAMPLE_CONTEXT_FILENAME
+                        ),
+                        windowTitle
+                    )
+                    return
+                }
 
         FileUtil.writeToFile(newFile, content)
         LocalFileSystem.getInstance().refreshAndFindFileByIoFile(newFile)?.let {
@@ -132,17 +136,25 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         if (!outputContextDir.exists()) {
             try {
                 Files.createDirectories(outputContextDir.toPath())
-                LocalFileSystem.getInstance().refreshAndFindFileByIoFile(outputContextDir.parentFile)
-                    ?.refresh(false, true)
+                LocalFileSystem.getInstance()
+                    .refreshAndFindFileByIoFile(outputContextDir.parentFile)?.refresh(false, true)
                 LocalFileSystem.getInstance().refreshAndFindFileByIoFile(outputContextDir)
                     ?.refresh(false, true)
             } catch (e: Exception) {
-                Messages.showErrorDialog(project, "Error creating output directory '$OUTPUT_CONTEXT_DIRECTORY': ${e.message}", TOOL_WINDOW_TITLE)
+                Messages.showErrorDialog(
+                    project,
+                    MyBundle.message(
+                        Strings.ERROR_CREATING_OUTPUT_DIRECTORY,
+                        FileConstants.OUTPUT_DIR,
+                        e.message ?: unknownErrorMessage
+                    ),
+                    windowTitle
+                )
                 return
             }
         }
 
-        val repoContextFile = File(outputContextDir, REPO_CONTEXT_FILE_NAME)
+        val repoContextFile = File(outputContextDir, FileConstants.REPO_CONTEXT_FILENAME)
         val selectedFilesWithContent = getSelectedFilesWithContent(project)
 
         var combinedContent = ""
@@ -155,12 +167,14 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
                 combinedContent = combinedContent.trimEnd('\n')
             }
         } else {
-            combinedContent = "// No files were selected from '$SOURCE_CONTEXT_DIRECTORY'.\n// '$REPO_CONTEXT_FILE_NAME' is intentionally empty or will only contain patch instructions."
+            combinedContent =
+                "// No files were selected from '${FileConstants.SOURCE_CONTEXT_DIR}'.\n// '${FileConstants.REPO_CONTEXT_FILENAME}' is intentionally empty or will only contain patch instructions."
         }
 
         try {
             var finalContent = combinedContent
-            finalContent = finalContent.replace("\n\n$PATCH_FORMAT_INSTRUCTION", "").replace(PATCH_FORMAT_INSTRUCTION, "")
+            finalContent = finalContent.replace("\n\n${FileConstants.PATCH_FORMAT_INSTRUCTION}", "")
+                .replace(FileConstants.PATCH_FORMAT_INSTRUCTION, "")
 
             if (isPatchFormatEnabled) {
                 if (finalContent.isNotBlank() && !finalContent.endsWith("\n\n")) {
@@ -169,26 +183,55 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
                     }
                     finalContent += "\n"
                 }
-                finalContent += PATCH_FORMAT_INSTRUCTION
+                finalContent += FileConstants.PATCH_FORMAT_INSTRUCTION
             }
 
             repoContextFile.writeText(finalContent)
-            Messages.showInfoMessage(project, "$REPO_CONTEXT_FILE_NAME has been generated/updated successfully with selected content.", TOOL_WINDOW_TITLE)
+            Messages.showInfoMessage(
+                project,
+                MyBundle.message(
+                    Strings.FILE_GENERATED_SUCCESS,
+                    FileConstants.REPO_CONTEXT_FILENAME
+                ),
+                windowTitle
+            )
             openFileInEditor(project, repoContextFile)
 
         } catch (e: Exception) {
-            Messages.showErrorDialog(project, "Error creating or updating repo context file: ${e.message}", TOOL_WINDOW_TITLE)
-            println("Error in createRepoContextFile: ${e.message}")
+            Messages.showErrorDialog(
+                project,
+                MyBundle.message(
+                    Strings.ERROR_FILE_CREATION_FAILED,
+                    e.message ?: unknownErrorMessage
+                ),
+                windowTitle
+            )
         }
     }
 
     private fun deleteRepoContextFile(project: Project) {
-        val repoFile = File(getOutputContextDirectory(project), REPO_CONTEXT_FILE_NAME)
+        val repoFile = File(getOutputContextDirectory(project), FileConstants.REPO_CONTEXT_FILENAME)
         if (repoFile.exists() && repoFile.delete()) {
-            LocalFileSystem.getInstance().refreshAndFindFileByIoFile(repoFile.parentFile)?.refresh(false, true)
-            Messages.showInfoMessage(project, "$REPO_CONTEXT_FILE_NAME deleted.", TOOL_WINDOW_TITLE)
+            LocalFileSystem.getInstance().refreshAndFindFileByIoFile(repoFile.parentFile)
+                ?.refresh(false, true)
+            Messages.showInfoMessage(
+                project,
+                // REPO_CONTEXT_DELETED_SUCCESS
+                MyBundle.message(
+                    Strings.FILE_DELETED_SUCCESS,
+                    FileConstants.REPO_CONTEXT_FILENAME
+                ),
+                windowTitle
+            )
         } else {
-            Messages.showErrorDialog(project, "Could not delete $REPO_CONTEXT_FILE_NAME.", TOOL_WINDOW_TITLE)
+            Messages.showErrorDialog(
+                project,
+                MyBundle.message(
+                    Strings.ERROR_FILE_DELETE_FAILED,
+                    FileConstants.REPO_CONTEXT_FILENAME
+                ),
+                windowTitle
+            )
         }
     }
 
@@ -201,20 +244,26 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
     }
 
     private fun getSourceContextDirectory(project: Project) =
-        Paths.get(project.basePath ?: ".", SOURCE_CONTEXT_DIRECTORY).toFile()
+        Paths.get(project.basePath ?: ".", FileConstants.SOURCE_CONTEXT_DIR).toFile()
 
     private fun getOutputContextDirectory(project: Project) =
-        Paths.get(project.basePath ?: ".", OUTPUT_CONTEXT_DIRECTORY).toFile()
+        Paths.get(project.basePath ?: ".", FileConstants.OUTPUT_DIR).toFile()
 
     private fun getSelectedFilesWithContent(project: Project): Map<String, String> {
         val dir = getSourceContextDirectory(project)
         val content = mutableMapOf<String, String>()
         for (i in 0 until filesTableModel.rowCount) {
-            val selected = filesTableModel.getValueAt(i, 0) as? Boolean ?: false
-            val name = filesTableModel.getValueAt(i, 1) as? String ?: continue
-            if (selected && !name.startsWith("The directory") && !name.startsWith("Could not list") && !name.startsWith("Created directory")) {
+            val selected = filesTableModel.getValueAt(i, selectedColumnIndex) as? Boolean ?: false
+            val name = filesTableModel.getValueAt(i, fileNameColumnIndex) as? String ?: continue
+            if (selected && !name.startsWith("The directory") && !name.startsWith("Could not list") && !name.startsWith(
+                    "Created directory"
+                )
+            ) {
                 val file = File(dir, name)
-                content[name] = if (file.exists()) file.readText() else "Error: File not found."
+                content[name] = if (file.exists()) file.readText() else MyBundle.message(
+                    Strings.ERROR_FILE_NOT_FOUND,
+                    name
+                )
             }
         }
         return content
@@ -227,12 +276,29 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
             if (!dir.exists()) Files.createDirectories(dir.toPath())
             val files = dir.listFiles()?.filter { it.isFile } ?: emptyList()
             if (files.isEmpty()) {
-                filesTableModel.addRow(arrayOf(false, "The directory '$SOURCE_CONTEXT_DIRECTORY' is empty."))
+                filesTableModel.addRow(
+                    arrayOf<Any>(
+                        false,
+                        MyBundle.message(
+                            Strings.ERROR_DIRECTORY_EMPTY,
+                            FileConstants.SOURCE_CONTEXT_DIR
+                        )
+                    )
+                )
             } else {
-                files.sortedBy { it.name }.forEach { filesTableModel.addRow(arrayOf(false, it.name)) }
+                files.sortedBy { it.name }
+                    .forEach { filesTableModel.addRow(arrayOf(false, it.name)) }
             }
         } catch (e: Exception) {
-            filesTableModel.addRow(arrayOf(false, "Error: ${e.message}"))
+            filesTableModel.addRow(
+                arrayOf<Any>(
+                    false,
+                    MyBundle.message(
+                        Strings.ERROR_FILES_LIST,
+                        e.message ?: unknownErrorMessage
+                    )
+                )
+            )
         }
     }
 
@@ -246,11 +312,16 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
     ): JPanel {
         val topPanel = JPanel()
         topPanel.layout = BoxLayout(topPanel, BoxLayout.Y_AXIS)
-        if (LAYOUT_DEBUG_ENABLED) topPanel.border = BorderFactory.createLineBorder(JBColor.YELLOW) // Consider making border optional or a parameter
+        if (isDebugLayoutEnabled) topPanel.border =
+            BorderFactory.createLineBorder(JBColor.YELLOW) // Consider making border optional or a parameter
 
         val settingsLabel = JBLabel(settingsLabelText)
-        val togglePatch = JBCheckBox(togglePatchText, true) // Default state might need to be a parameter or managed elsewhere
-        togglePatch.alignmentX = Component.LEFT_ALIGNMENT // Align checkbox to the left within its panel
+        val togglePatch = JBCheckBox(
+            togglePatchText,
+            true
+        ) // Default state might need to be a parameter or managed elsewhere
+        togglePatch.alignmentX =
+            Component.LEFT_ALIGNMENT // Align checkbox to the left within its panel
         val createRepoContextButton = JButton(createRepoContextButtonText, AllIcons.Actions.AddFile)
         createRepoContextButton.addActionListener {
             createRepoContextFile(project, togglePatch.isSelected)
@@ -262,10 +333,10 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
 
 
         listOf(
-            settingsLabel, Box.createVerticalStrut(10),
-            togglePatch, Box.createVerticalStrut(10),
-            createRepoContextButton, Box.createVerticalStrut(10),
-            deleteRepoContextButton, Box.createVerticalStrut(10),
+            settingsLabel, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
+            togglePatch, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
+            createRepoContextButton, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
+            deleteRepoContextButton, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
         ).forEach {
             topPanel.add(it)
         }
@@ -283,21 +354,29 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         val fileActionsPanel = JPanel()
         fileActionsPanel.layout = BoxLayout(fileActionsPanel, BoxLayout.X_AXIS)
 
-        val refreshFilesButton = JButton("Refresh List", AllIcons.Actions.Refresh)
+        val refreshFilesButton = JButton(
+            MyBundle.message(Strings.REFRESH_LIST_BUTTON),
+            AllIcons.Actions.Refresh
+        )
         refreshFilesButton.addActionListener { updateFilesInPanel(project) }
 
-        val addNewSourceFileButton = JButton(ADD_NEW_SOURCE_FILE_BUTTON_TEXT, AllIcons.Actions.AddFile)
+        val addNewSourceFileButton =
+            JButton(
+                MyBundle.message(Strings.ADD_NEW_SOURCE_FILE_BUTTON),
+                AllIcons.Actions.AddFile
+            )
         addNewSourceFileButton.addActionListener { addNewSourceFile(project) }
 
         fileActionsPanel.add(refreshFilesButton)
-        fileActionsPanel.add(Box.createRigidArea(Dimension(5, 0)))
+        fileActionsPanel.add(Box.createRigidArea(Dimension(Dimensions.SPACING_X_SMALL, 0)))
         fileActionsPanel.add(addNewSourceFileButton)
-        fileActionsPanel.add(Box.createHorizontalGlue()) // Pushes buttons to the left
-        if (LAYOUT_DEBUG_ENABLED) fileActionsPanel.border = BorderFactory.createLineBorder(JBColor.YELLOW) // Optional: make border a parameter or remove
+        fileActionsPanel.add(Box.createHorizontalGlue())
+
+        if (isDebugLayoutEnabled) fileActionsPanel.border =
+            BorderFactory.createLineBorder(JBColor.YELLOW)
 
         return fileActionsPanel
     }
-
 
     private fun createFilesTablePanel(project: Project): JPanel {
         val filesPanel = JPanel()
@@ -306,38 +385,44 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         // Files Label setup
         val filesLabelPanel = JPanel()
         filesLabelPanel.layout = BoxLayout(filesLabelPanel, BoxLayout.X_AXIS)
-        val filesLabel = JBLabel(FILES_LABEL_TEXT)
-        filesLabel.alignmentX = Component.LEFT_ALIGNMENT // Align label to the left within its panel
+        val filesLabel = JBLabel(
+            MyBundle.message(
+                Strings.FILES_LABEL,
+                FileConstants.SOURCE_CONTEXT_DIR
+            )
+        )
+        filesLabel.alignmentX = Component.LEFT_ALIGNMENT
         filesLabelPanel.add(filesLabel)
-        filesLabelPanel.add(Box.createHorizontalGlue()) // Pushes label to the left
-        if (LAYOUT_DEBUG_ENABLED) filesLabelPanel.border = BorderFactory.createLineBorder(JBColor.YELLOW)
+        filesLabelPanel.add(Box.createHorizontalGlue())
+        if (isDebugLayoutEnabled) {
+            filesLabelPanel.border = BorderFactory.createLineBorder(JBColor.YELLOW)
+        }
 
         // Files Table setup
-        val columnNames = arrayOf("Selected", "File Name")
+        val columnNames = arrayOf(
+            MyBundle.message(Strings.SELECTED_COLUMN_LABEL),
+            MyBundle.message(Strings.FILE_NAME_COLUMN_LABEL)
+        )
 
         filesTableModel = object : DefaultTableModel(columnNames, 0) {
-            override fun isCellEditable(row: Int, column: Int): Boolean {
-                return column == 0 // Only the "Selected" checkbox is editable
-            }
-
-            override fun getColumnClass(columnIndex: Int): Class<*> {
-                return if (columnIndex == 0) Boolean::class.javaObjectType else String::class.java
-            }
+            override fun isCellEditable(row: Int, column: Int): Boolean = column == 0
+            override fun getColumnClass(columnIndex: Int): Class<*> =
+                if (columnIndex == 0) Boolean::class.javaObjectType else String::class.java
         }
+
         filesTable = JBTable(filesTableModel)
-        filesTable.columnModel.getColumn(0).preferredWidth = 70 // Make checkbox column narrower
-        filesTable.columnModel.getColumn(0).maxWidth = 70
+        filesTable.columnModel.getColumn(selectedColumnIndex).preferredWidth = Dimensions.FILE_SELECTED_WIDTH
+        filesTable.columnModel.getColumn(selectedColumnIndex).maxWidth = Dimensions.FILE_SELECTED_WIDTH
 
         val filesScrollPane = JBScrollPane(filesTable)
-        filesScrollPane.preferredSize = Dimension(0, 200) // Adjust height as needed
-
-        if (LAYOUT_DEBUG_ENABLED) filesScrollPane.border = BorderFactory.createLineBorder(JBColor.GREEN)
+        if (isDebugLayoutEnabled) {
+            filesScrollPane.border = BorderFactory.createLineBorder(JBColor.GREEN)
+        }
 
         filesPanel.add(filesLabelPanel)
-        filesPanel.add(Box.createVerticalStrut(5)) // Spacing between label and table
+        filesPanel.add(Box.createVerticalStrut(Dimensions.SPACING_SMALL))
         filesPanel.add(filesScrollPane)
 
-        // Initial population of the table
         updateFilesInPanel(project)
 
         return filesPanel
