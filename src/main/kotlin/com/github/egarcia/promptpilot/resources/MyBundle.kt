@@ -1,4 +1,4 @@
-package com.github.egarcia.promptpilot
+package com.github.egarcia.promptpilot.resources
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls
