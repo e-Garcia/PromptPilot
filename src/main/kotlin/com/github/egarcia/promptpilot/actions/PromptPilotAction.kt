@@ -1,5 +1,6 @@
-package com.github.egarcia.promptpilot
+package com.github.egarcia.promptpilot.actions
 
+import com.github.egarcia.promptpilot.FileConstants
 import com.github.egarcia.promptpilot.backends.AIPromptContext
 import com.github.egarcia.promptpilot.resources.MyBundle
 import com.github.egarcia.promptpilot.resources.Strings

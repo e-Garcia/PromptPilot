@@ -28,7 +28,7 @@
     <actions>
         <action
                 id="PromptPilot.GenerateAction"
-                class="com.github.egarcia.promptpilot.PromptPilotAction"
+                class="com.github.egarcia.promptpilot.actions.PromptPilotAction"
                 text="Enhance with AI"
                 description="Generate AI-enhanced code instructions based on current context">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
