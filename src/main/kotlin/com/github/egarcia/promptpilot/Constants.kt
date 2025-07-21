@@ -1,7 +1,10 @@
 package com.github.egarcia.promptpilot
 
 object SettingsKeys {
-    const val DEBUG_LAYOUT = false
+    const val PATCH_TOGGLE_KEY = "com.github.egarcia.promptpilot.patchFormatToggle"
+    const val DEBUG_LAYOUT_KEY = "com.github.egarcia.promptpilot.debugLayout"
+    const val CUSTOM_OUTPUT_DIR = "promptpilot.custom.output.dir"
+    const val CUSTOM_OUTPUT_FILENAME = "promptpilot.custom.output.filename"
 }
 
 object FileConstants {

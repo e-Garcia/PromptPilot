@@ -19,6 +19,19 @@ object Strings {
     const val TOGGLE_PATCH_TEXT = "toggle.patch.button"
 
     @NonNls
+    const val SAVE_OUTPUT_SETTINGS_BUTTON = "save.output.settings.button"
+    @NonNls
+    const val SAVE_OUTPUT_SETTINGS_SUCCESS = "success.save.output.settings"
+
+    @NonNls
+    const val CUSTOM_OUTPUT_DIR_LABEL = "custom.output.dir.label"
+    @NonNls
+    const val CUSTOM_OUTPUT_FILE_LABEL = "custom.output.file.label"
+
+    @NonNls
+    const val ADVANCED_OUTPUT_SETTINGS_TITLE = "advanced.output.settings.title"
+
+    @NonNls
     const val CREATE_REPO_CONTEXT_BUTTON = "create.repo.context.button"
 
     @NonNls
@@ -56,6 +69,8 @@ object Strings {
     const val ERROR_FILE_CREATION_FAILED = "error.file.creation.failed"
     @NonNls
     const val ERROR_FILE_DELETE_FAILED = "error.file.delete.failed"
+    @NonNls
+    const val ERROR_FILES_LIST_SOURCE_FILES_FAILED = "error.files.list.source.files.failed"
     @NonNls
     const val FILE_GENERATED_SUCCESS = "success.file.context.generated"
     @NonNls
