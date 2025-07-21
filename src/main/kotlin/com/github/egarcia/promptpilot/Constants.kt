@@ -1,19 +1,12 @@
 package com.github.egarcia.promptpilot
 
-object PluginIds {
-    const val TOOL_WINDOW_ID = "PromptPilot"
-}
-
 object SettingsKeys {
-    const val PATCH_FORMAT = "promptpilot.patchFormat"
-
     const val DEBUG_LAYOUT = false
 }
 
 object FileConstants {
     const val OUTPUT_DIR = ".promptpilot"
     const val SOURCE_CONTEXT_DIR = ".promptpilot/source-context"
-    const val REPO_CONTEXT_DIR = ".promptpilot/"
     const val REPO_CONTEXT_FILENAME = "repo-context.md"
     const val SAMPLE_CONTEXT_FILENAME = "sample-context.md"
     const val DEFAULT_NEW_FILE = "new-context-file.md"

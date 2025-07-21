@@ -20,18 +20,5 @@
         <toolWindow
                 id="PromptPilotTool"
                 factoryClass="com.github.egarcia.promptpilot.toolWindow.PromptPilotToolWindowFactory"/>
-
-        <postStartupActivity
-                implementation="com.github.egarcia.promptpilot.startup.MyProjectActivity"/>
     </extensions>
-
-    <actions>
-        <action
-                id="PromptPilot.GenerateAction"
-                class="com.github.egarcia.promptpilot.actions.PromptPilotAction"
-                text="Enhance with AI"
-                description="Generate AI-enhanced code instructions based on current context">
-            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-        </action>
-    </actions>
 </idea-plugin>
