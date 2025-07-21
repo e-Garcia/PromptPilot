@@ -16,14 +16,17 @@ import java.nio.file.Paths
 class ContextFileManager(private val project: Project) {
     private val basePath = project.basePath ?: "."
     private val sourceDir = Paths.get(basePath, FileConstants.SOURCE_CONTEXT_DIR).toFile()
-    private val properties = PropertiesComponent.getInstance(project)
-    private val outputDir: File = properties.getValue(SettingsKeys.CUSTOM_OUTPUT_DIR)
-        ?.let { Paths.get(basePath, it).toFile() }
-        ?: Paths.get(basePath, FileConstants.OUTPUT_DIR).toFile()
-
-    private val outputFilename: String = properties.getValue(SettingsKeys.CUSTOM_OUTPUT_FILENAME)
-        ?: FileConstants.REPO_CONTEXT_FILENAME
+    private val properties get() = PropertiesComponent.getInstance(project)
     private val localFS = LocalFileSystem.getInstance()
+
+    private val outputDir: File
+        get() = properties.getValue(SettingsKeys.CUSTOM_OUTPUT_DIR)
+            ?.let { Paths.get(basePath, it).toFile() }
+            ?: Paths.get(basePath, FileConstants.OUTPUT_DIR).toFile()
+
+    private val outputFilename: String
+        get() = properties.getValue(SettingsKeys.CUSTOM_OUTPUT_FILENAME)
+            ?: FileConstants.REPO_CONTEXT_FILENAME
 
     fun ensureDirectoriesExist() {
         runCatching {

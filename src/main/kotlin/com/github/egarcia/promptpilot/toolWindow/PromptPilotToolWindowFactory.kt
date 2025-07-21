@@ -14,22 +14,23 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.CollapsiblePanel
-import com.intellij.ui.HideableDecorator
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
-import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.FlowLayout
 import javax.swing.BorderFactory
 import javax.swing.Box
 import javax.swing.BoxLayout
+import javax.swing.Icon
 import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.JTextField
+import javax.swing.UIManager
 import javax.swing.table.DefaultTableModel
 
 class PromptPilotToolWindowFactory : ToolWindowFactory {
@@ -67,6 +68,7 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
 
         val filesScrollPane = createFilesTablePanel(project)
         val fileActionsPanel = createFileActionsPanel(project)
+        val advancedSettingsPanel = createAdvancedOutputSettingsPanel(project) // ← NEW PANEL
 
         val panel = JPanel()
         panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
@@ -77,6 +79,8 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         panel.add(filesScrollPane)
         panel.add(Box.createVerticalStrut(Dimensions.SPACING_X_SMALL))
         panel.add(fileActionsPanel)
+        panel.add(Box.createVerticalStrut(Dimensions.SPACING_X_SMALL))
+        panel.add(advancedSettingsPanel) // ← APPENDED LAST
 
         updateFilesInPanel()
 
@@ -84,6 +88,7 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         outerPanel.add(panel)
         return outerPanel
     }
+
 
     private fun addNewSourceFile(project: Project) {
         val input = Messages.showInputDialog(
@@ -148,17 +153,19 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
     }
 
     private fun deleteRepoContextFile(project: Project) {
+        val deletedFile = fileManager.getOutputFile()
         fileManager.deleteRepoContextFile()
             .onSuccess {
                 Messages.showInfoMessage(
                     project,
                     MyBundle.message(
                         Strings.FILE_DELETED_SUCCESS,
-                        FileConstants.REPO_CONTEXT_FILENAME
+                        deletedFile.name
                     ),
                     windowTitle
                 )
             }
+
             .onFailure { e ->
                 Messages.showErrorDialog(
                     project,
@@ -236,24 +243,6 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
             properties.setValue(SettingsKeys.PATCH_TOGGLE_KEY, togglePatch.isSelected)
         }
 
-        val customOutputDirLabel = JBLabel(MyBundle.message(Strings.CUSTOM_OUTPUT_DIR_LABEL))
-        val customOutputFileLabel = JBLabel(MyBundle.message(Strings.CUSTOM_OUTPUT_FILE_LABEL))
-
-        val customOutputDirField =
-            JTextField(properties.getValue(SettingsKeys.CUSTOM_OUTPUT_DIR,  FileConstants.OUTPUT_DIR), 20)
-        val customOutputFileField =
-            JTextField(properties.getValue(SettingsKeys.CUSTOM_OUTPUT_FILENAME, FileConstants.REPO_CONTEXT_FILENAME), 20)
-
-        val saveButton = JButton(MyBundle.message(Strings.SAVE_OUTPUT_SETTINGS_BUTTON), AllIcons.Actions.Commit)
-        saveButton.addActionListener {
-            properties.setValue(SettingsKeys.CUSTOM_OUTPUT_DIR, customOutputDirField.text.trim())
-            properties.setValue(SettingsKeys.CUSTOM_OUTPUT_FILENAME, customOutputFileField.text.trim())
-            Messages.showInfoMessage(
-                project,
-                MyBundle.message(Strings.SAVE_OUTPUT_SETTINGS_SUCCESS),
-                windowTitle
-            )
-        }
         val createRepoContextButton = JButton(createRepoContextButtonText, AllIcons.Actions.AddFile)
         createRepoContextButton.addActionListener {
             createRepoContextFile(project, togglePatch.isSelected)
@@ -263,13 +252,9 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
             deleteRepoContextFile(project)
         }
 
-
         listOf(
             settingsLabel, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
             togglePatch, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
-            customOutputDirLabel, customOutputDirField, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
-            customOutputFileLabel, customOutputFileField, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
-            saveButton, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
             createRepoContextButton, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
             deleteRepoContextButton, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
         ).forEach {
@@ -392,18 +377,22 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         val contentPanel = JPanel()
         contentPanel.layout = BoxLayout(contentPanel, BoxLayout.Y_AXIS)
         listOf(
+            Box.createVerticalStrut(Dimensions.SPACING_X_SMALL),
             JBLabel(MyBundle.message(Strings.CUSTOM_OUTPUT_DIR_LABEL)), customOutputDirField,
             JBLabel(MyBundle.message(Strings.CUSTOM_OUTPUT_FILE_LABEL)), customOutputFileField,
             Box.createVerticalStrut(Dimensions.SPACING_X_SMALL),
             saveButton
         ).forEach { contentPanel.add(it) }
 
+        val expandIcon: Icon = UIManager.getIcon("Tree.collapsedIcon") ?: UIUtil.getTreeCollapsedIcon()
+        val collapseIcon: Icon = UIManager.getIcon("Tree.expandedIcon") ?: UIUtil.getTreeExpandedIcon()
+
         val collapsiblePanel = CollapsiblePanel(
-            contentPanel, // JComponent content
-            true, // collapseButtonAtLeft
-            false, // isCollapsed (default state)
-            null, // collapseIcon (use default)
-            null, // expandIcon (use default)
+            contentPanel,
+            true,
+            true,
+            collapseIcon,
+            expandIcon,
             MyBundle.message(Strings.ADVANCED_OUTPUT_SETTINGS_TITLE)
         )
         return collapsiblePanel
