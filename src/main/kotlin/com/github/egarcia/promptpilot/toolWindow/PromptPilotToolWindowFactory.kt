@@ -87,7 +87,7 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         val sourceDir = getSourceContextDirectory(project)
         if (!sourceDir.exists()) Files.createDirectories(sourceDir.toPath())
 
-        val fileName = Messages.showInputDialog(
+        val input = Messages.showInputDialog(
             project,
             MyBundle.message(Strings.NEW_SOURCE_FILE_DIALOG_MESSAGE),
             MyBundle.message(Strings.NEW_SOURCE_FILE_DIALOG_TITLE),
@@ -96,8 +96,28 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
             null
         ) ?: return
 
-        val sanitized = fileName.replace(File.separatorChar, '_').replace("..", "_")
-        val finalName = if (!sanitized.endsWith(FileConstants.DEFAULT_FILE_EXTENSION)) "$sanitized${FileConstants.DEFAULT_FILE_EXTENSION}" else sanitized
+        val fileName = input.trim()
+
+        // Validate input
+        if (fileName.isEmpty()) {
+            Messages.showErrorDialog(
+                project,
+                MyBundle.message(Strings.ERROR_EMPTY_FILE_NAME),
+                windowTitle
+            )
+            return
+        }
+
+        // Sanitize file name: replace invalid characters, block path traversal
+        val invalidCharsRegex = Regex(FileConstants.INVALID_FILENAME_REGEX)
+        val sanitized = fileName.replace(File.separatorChar, '_')
+            .replace("..", "_")
+            .replace(invalidCharsRegex, "_")
+
+        val finalName = if (!sanitized.endsWith(FileConstants.DEFAULT_FILE_EXTENSION))
+            "$sanitized${FileConstants.DEFAULT_FILE_EXTENSION}"
+        else sanitized
+
         val newFile = File(sourceDir, finalName)
 
         if (newFile.exists()) {
@@ -109,20 +129,19 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
             return
         }
 
-        val content =
-            javaClass.classLoader.getResourceAsStream(FileConstants.SAMPLE_CONTEXT_FILENAME)
-                ?.bufferedReader()?.use { it.readText() }
-                ?: run {
-                    Messages.showErrorDialog(
-                        project,
-                        MyBundle.message(
-                            Strings.ERROR_FILE_NOT_FOUND,
-                            FileConstants.SAMPLE_CONTEXT_FILENAME
-                        ),
-                        windowTitle
-                    )
-                    return
-                }
+        val content = javaClass.classLoader.getResourceAsStream(FileConstants.SAMPLE_CONTEXT_FILENAME)
+            ?.bufferedReader()?.use { it.readText() }
+            ?: run {
+                Messages.showErrorDialog(
+                    project,
+                    MyBundle.message(
+                        Strings.ERROR_FILE_NOT_FOUND,
+                        FileConstants.SAMPLE_CONTEXT_FILENAME
+                    ),
+                    windowTitle
+                )
+                return
+            }
 
         FileUtil.writeToFile(newFile, content)
         LocalFileSystem.getInstance().refreshAndFindFileByIoFile(newFile)?.let {
@@ -130,6 +149,7 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         }
         updateFilesInPanel(project)
     }
+
 
     private fun createRepoContextFile(project: Project, isPatchFormatEnabled: Boolean) {
         val outputContextDir = getOutputContextDirectory(project)
@@ -167,8 +187,11 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
                 combinedContent = combinedContent.trimEnd('\n')
             }
         } else {
-            combinedContent =
-                "// No files were selected from '${FileConstants.SOURCE_CONTEXT_DIR}'.\n// '${FileConstants.REPO_CONTEXT_FILENAME}' is intentionally empty or will only contain patch instructions."
+            combinedContent = MyBundle.message(
+                Strings.NO_FILES_SELECTED_MESSAGE,
+                FileConstants.SOURCE_CONTEXT_DIR,
+                FileConstants.REPO_CONTEXT_FILENAME
+            )
         }
 
         try {
@@ -320,8 +343,7 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
             togglePatchText,
             true
         ) // Default state might need to be a parameter or managed elsewhere
-        togglePatch.alignmentX =
-            Component.LEFT_ALIGNMENT // Align checkbox to the left within its panel
+        togglePatch.alignmentX = Component.LEFT_ALIGNMENT
         val createRepoContextButton = JButton(createRepoContextButtonText, AllIcons.Actions.AddFile)
         createRepoContextButton.addActionListener {
             createRepoContextFile(project, togglePatch.isSelected)
@@ -341,13 +363,11 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
             topPanel.add(it)
         }
 
-        // Wrap in a background panel to control X_AXIS alignment if needed,
-        // or return topPanel directly if the BoxLayout X_AXIS behavior is desired.
         val topPanelBackground = JPanel()
         topPanelBackground.layout = BoxLayout(topPanelBackground, BoxLayout.X_AXIS)
         topPanelBackground.add(topPanel)
 
-        return topPanelBackground // or return topPanel directly
+        return topPanelBackground
     }
 
     private fun createFileActionsPanel(project: Project): JPanel {

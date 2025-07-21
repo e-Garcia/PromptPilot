@@ -16,7 +16,7 @@ object Strings {
     const val SETTINGS_LABEL = "settings.label"
 
     @NonNls
-    const val TOGGLE_PATCH_TEXT = "toggle.patch.text"
+    const val TOGGLE_PATCH_TEXT = "toggle.patch.button"
 
     @NonNls
     const val CREATE_REPO_CONTEXT_BUTTON = "create.repo.context.button"
@@ -36,6 +36,8 @@ object Strings {
     @NonNls
     const val NEW_SOURCE_FILE_DIALOG_MESSAGE = "new.source.file.dialog.message"
     @NonNls
+    const val NO_FILES_SELECTED_MESSAGE = "no.files.selected.message"
+    @NonNls
     const val SELECTED_COLUMN_LABEL = "selected.column.label"
     @NonNls
     const val FILE_NAME_COLUMN_LABEL = "file.name.column.label"
@@ -46,6 +48,8 @@ object Strings {
     const val ERROR_CREATING_OUTPUT_DIRECTORY = "error.creating.output.directory"
     @NonNls
     const val ERROR_DIRECTORY_EMPTY = "error.directory.empty"
+    @NonNls
+    const val ERROR_EMPTY_FILE_NAME = "error.empty.file.name"
     @NonNls
     const val ERROR_FILE_NOT_FOUND = "error.file.not.found"
     @NonNls

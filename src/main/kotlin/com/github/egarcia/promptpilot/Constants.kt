@@ -12,4 +12,5 @@ object FileConstants {
     const val DEFAULT_NEW_FILE = "new-context-file.md"
     const val DEFAULT_FILE_EXTENSION = ".md"
     const val PATCH_FORMAT_INSTRUCTION = "- output: use the patch format"
+    const val INVALID_FILENAME_REGEX = "[^a-zA-Z0-9._-]"
 }
