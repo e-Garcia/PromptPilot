@@ -1,10 +1,12 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.kotlin.gradle.plugin.KotlinJsCompilerType
 
 plugins {
     id("java") // Java support
-    alias(libs.plugins.kotlin) // Kotlin support
+    id("org.jetbrains.kotlin.multiplatform") version "1.9.24" // Kotlin Multiplatform support
+    //alias(libs.plugins.kotlin) // Kotlin support
     alias(libs.plugins.intelliJPlatform) // IntelliJ Platform Gradle Plugin
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     alias(libs.plugins.qodana) // Gradle Qodana Plugin
@@ -14,9 +16,40 @@ plugins {
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
-// Set the JVM language level used to build the project.
+// Set up Kotlin Multiplatform targets
 kotlin {
     jvmToolchain(21)
+
+    jvm()
+
+    js(KotlinJsCompilerType.IR) {
+        nodejs {
+            binaries.executable()
+        }
+    }
+
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                // Common dependencies here
+            }
+        }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
+        val jvmMain by getting
+        val jvmTest by getting
+        val jsMain by getting {
+            dependencies {
+                implementation(npm("vscode", "^1.89.0"))
+                implementation(npm("@types/vscode", "^1.89.0"))
+                // Add more npm dependencies as needed
+            }
+        }
+        val jsTest by getting
+    }
 }
 
 // Configure project's dependencies
