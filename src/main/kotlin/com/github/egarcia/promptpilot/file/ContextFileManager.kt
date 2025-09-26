@@ -7,13 +7,14 @@ import com.github.egarcia.promptpilot.resources.Strings
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Paths
 
-class ContextFileManager(private val project: Project) {
+class ContextFileManager(
+    private val project: Project,
+    private val fsOps: FileSystemOps = FileSystemOpsImpl()
+) {
     private val basePath = project.basePath ?: "."
     private val sourceDir = Paths.get(basePath, FileConstants.SOURCE_CONTEXT_DIR).toFile()
     private val properties get() = PropertiesComponent.getInstance(project)
@@ -30,8 +31,8 @@ class ContextFileManager(private val project: Project) {
 
     fun ensureDirectoriesExist() {
         runCatching {
-            if (!sourceDir.exists()) Files.createDirectories(sourceDir.toPath())
-            if (!outputDir.exists()) Files.createDirectories(outputDir.toPath())
+            if (!fsOps.exists(sourceDir)) fsOps.createDirectories(sourceDir.toPath())
+            if (!fsOps.exists(outputDir)) fsOps.createDirectories(outputDir.toPath())
         }.onFailure { e ->
             throw IllegalStateException(
                 MyBundle.message(
@@ -44,7 +45,7 @@ class ContextFileManager(private val project: Project) {
     }
 
     fun listSourceFiles(): Result<List<File>> = runCatching {
-        sourceDir.listFiles()?.filter { it.isFile }
+        fsOps.listFiles(sourceDir)?.filter { it.isFile }
             ?: throw IllegalStateException(MyBundle.message(Strings.ERROR_FILES_LIST_SOURCE_FILES_FAILED))
     }
 
@@ -55,24 +56,25 @@ class ContextFileManager(private val project: Project) {
         }
     }
 
-    fun createSampleFileFromTemplate(fileName: String, templateResourceName: String): Result<File> = runCatching {
-        val sanitized = sanitizeFileName(fileName)
+    fun createSampleFileFromTemplate(fileName: String, templateResourceName: String): Result<File> =
+        runCatching {
+            val sanitized = sanitizeFileName(fileName)
 
-        val finalName = if (!sanitized.endsWith(FileConstants.DEFAULT_FILE_EXTENSION))
-            "$sanitized${FileConstants.DEFAULT_FILE_EXTENSION}" else sanitized
+            val finalName = if (!sanitized.endsWith(FileConstants.DEFAULT_FILE_EXTENSION))
+                "$sanitized${FileConstants.DEFAULT_FILE_EXTENSION}" else sanitized
 
-        val newFile = File(sourceDir, finalName)
-        if (newFile.exists()) {
-            error(MyBundle.message(Strings.WARNING_FILE_ALREADY_EXISTS, finalName))
+            val newFile = File(sourceDir, finalName)
+            if (fsOps.exists(newFile)) {
+                error(MyBundle.message(Strings.WARNING_FILE_ALREADY_EXISTS, finalName))
+            }
+
+            val content = javaClass.classLoader.getResourceAsStream(templateResourceName)
+                ?.bufferedReader()?.use { it.readText() }
+                ?: error(MyBundle.message(Strings.ERROR_FILE_NOT_FOUND, templateResourceName))
+
+            fsOps.writeToFile(newFile, content)
+            newFile
         }
-
-        val content = javaClass.classLoader.getResourceAsStream(templateResourceName)
-            ?.bufferedReader()?.use { it.readText() }
-            ?: error(MyBundle.message(Strings.ERROR_FILE_NOT_FOUND, templateResourceName))
-
-        FileUtil.writeToFile(newFile, content)
-        newFile
-    }
 
     fun createRepoContextFileFromContent(
         selectedFilesContent: Map<String, String>,
@@ -107,24 +109,25 @@ class ContextFileManager(private val project: Project) {
     fun deleteRepoContextFile(): Result<Unit> = runCatching {
         val file = getOutputFile()
         when {
-            !file.exists() -> error(MyBundle.message(Strings.ERROR_FILE_NOT_FOUND, file.name))
-            !file.delete() -> error(MyBundle.message(Strings.ERROR_FILE_DELETE_FAILED, file.name))
+            !fsOps.exists(file) -> error(MyBundle.message(Strings.ERROR_FILE_NOT_FOUND, file.name))
+            !fsOps.delete(file) -> error(MyBundle.message(Strings.ERROR_FILE_DELETE_FAILED, file.name))
             else -> localFS.refreshAndFindFileByIoFile(file.parentFile)?.refresh(false, true)
         }
     }
 
-    fun readSelectedFilesWithContent(selectedFiles: List<String>): Result<Map<String, String>> = runCatching {
-        val contents = mutableMapOf<String, String>()
-        for (fileName in selectedFiles) {
-            val file = File(sourceDir, fileName)
-            contents[fileName] = if (file.exists()) {
-                file.readText()
-            } else {
-                MyBundle.message(Strings.ERROR_FILE_NOT_FOUND, fileName)
+    fun readSelectedFilesWithContent(selectedFiles: List<String>): Result<Map<String, String>> =
+        runCatching {
+            val contents = mutableMapOf<String, String>()
+            for (fileName in selectedFiles) {
+                val file = File(sourceDir, fileName)
+                contents[fileName] = if (fsOps.exists(file)) {
+                    fsOps.readText(file)
+                } else {
+                    MyBundle.message(Strings.ERROR_FILE_NOT_FOUND, fileName)
+                }
             }
+            contents
         }
-        contents
-    }
 
     fun getOutputFile(): File = File(outputDir, outputFilename)
 
