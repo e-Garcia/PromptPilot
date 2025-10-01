@@ -34,11 +34,13 @@ To install manually:
 
 ## 🤖 Supported Backends
 
-| Backend            | Status            | Notes                                       |
-|-------------------|-------------------|---------------------------------------------|
-| **Gemini (Google)** | 🛠️ In development | Targeting first alpha version               |
-| **OpenAI GPT-4**    | 🛠️ In development | Backend abstraction already planned         |
-| **Tabnine**         | 🔜 Not started     | Under consideration                         |
+| Backend             | Status            | Notes                               |
+|---------------------|-------------------|-------------------------------------|
+| **Gemini (Google)** | 🛠️ In development | Targeting second major version      |
+| **Copilot**         | 🛠️ In development | Targeting second major version      |
+| **Cursor**          | 🛠️ In development | Targeting third major version       |
+| **OpenAI GPT-4**    | 🛠️ In development | Backend abstraction already planned |
+| **Tabnine**         | 🔜 Not started     | Under consideration                 |
 
 ---
 
@@ -70,9 +72,10 @@ We welcome contributions, issues, and feedback! See [CONTRIBUTING.md](CONTRIBUTI
 ---
 
 ## 📈 Roadmap
-- [ ] Add Claude backend
+- [ ] Support for Visual Studio Code through Kotlin Multiplatform
+- [ ] Add built in sample prompt templates
 - [ ] Context-aware project-wide prompt tuning
-- [ ] JetBrains Marketplace release
+- [X] JetBrains Marketplace release
 - [ ] Prompt profile presets per team
 - [ ] Inline code suggestions
 
