@@ -23,7 +23,7 @@ Whether you're refining unit tests, generating patch files, or enforcing archite
 
 ## 🧰 Installation
 
-Coming soon to the JetBrains Plugin Marketplace.
+**1. Install via JetBrains Marketplace: [PromptPilot on Marketplace](https://plugins.jetbrains.com/plugin/27974-promptpilot)**
 
 To install manually:
 1. Clone this repository
