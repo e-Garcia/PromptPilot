@@ -6,3 +6,5 @@ documentation:
   - docs/**
 feature:
   - feature/**
+refactor:
+  - refactor/**

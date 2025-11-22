@@ -22,6 +22,24 @@ object Strings {
     const val SAVE_OUTPUT_SETTINGS_BUTTON = "save.output.settings.button"
     @NonNls
     const val SAVE_OUTPUT_SETTINGS_SUCCESS = "success.save.output.settings"
+    @NonNls
+    const val OUTPUT_TARGET_LABEL = "output.target.label"
+    @NonNls
+    const val OUTPUT_TARGET_ACTIVE_PATH = "output.target.active.path"
+    @NonNls
+    const val OUTPUT_TARGET_STATUS_READY = "output.target.status.ready"
+    @NonNls
+    const val OUTPUT_TARGET_STATUS_MISSING = "output.target.status.missing"
+    @NonNls
+    const val OUTPUT_TARGET_PROMPTPILOT_LABEL = "output.target.promptpilot.label"
+    @NonNls
+    const val OUTPUT_TARGET_GITHUB_COPILOT_LABEL = "output.target.github.copilot.label"
+    @NonNls
+    const val OUTPUT_TARGET_CURSOR_LABEL = "output.target.cursor.label"
+    @NonNls
+    const val OUTPUT_TARGET_CUSTOM_LABEL = "output.target.custom.label"
+    @NonNls
+    const val OUTPUT_TARGET_CUSTOM_HINT = "output.target.custom.hint"
 
     @NonNls
     const val CUSTOM_OUTPUT_DIR_LABEL = "custom.output.dir.label"
