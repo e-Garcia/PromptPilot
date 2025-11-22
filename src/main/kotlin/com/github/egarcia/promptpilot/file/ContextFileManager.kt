@@ -2,6 +2,7 @@ package com.github.egarcia.promptpilot.file
 
 import com.github.egarcia.promptpilot.FileConstants
 import com.github.egarcia.promptpilot.SettingsKeys
+import com.github.egarcia.promptpilot.file.ContextOutputTarget.Companion.fromId
 import com.github.egarcia.promptpilot.resources.MyBundle
 import com.github.egarcia.promptpilot.resources.Strings
 import com.intellij.ide.util.PropertiesComponent
@@ -20,24 +21,59 @@ class ContextFileManager(
     private val properties get() = PropertiesComponent.getInstance(project)
     private val localFS = LocalFileSystem.getInstance()
 
-    private val outputDir: File
-        get() = properties.getValue(SettingsKeys.CUSTOM_OUTPUT_DIR)
-            ?.let { Paths.get(basePath, it).toFile() }
-            ?: Paths.get(basePath, FileConstants.OUTPUT_DIR).toFile()
+    private val selectedTarget: ContextOutputTarget
+        get() {
+            val valueSet = properties.isValueSet(SettingsKeys.OUTPUT_TARGET_KEY)
+            val storedTarget = properties.getValue(SettingsKeys.OUTPUT_TARGET_KEY)?.let { fromId(it) }
+            if (storedTarget != null) return storedTarget
 
-    private val outputFilename: String
-        get() = properties.getValue(SettingsKeys.CUSTOM_OUTPUT_FILENAME)
-            ?: FileConstants.REPO_CONTEXT_FILENAME
+            if (!valueSet && hasCustomOverrides()) {
+                return ContextOutputTarget.CUSTOM
+            }
+            return ContextOutputTarget.PROMPT_PILOT
+        }
+
+    private fun hasCustomOverrides(): Boolean {
+        val customDir = properties.getValue(SettingsKeys.CUSTOM_OUTPUT_DIR)
+        val customFile = properties.getValue(SettingsKeys.CUSTOM_OUTPUT_FILENAME)
+        val dirDiffers = !customDir.isNullOrBlank() && customDir != FileConstants.OUTPUT_DIR
+        val fileDiffers = !customFile.isNullOrBlank() && customFile != FileConstants.REPO_CONTEXT_FILENAME
+        return dirDiffers || fileDiffers
+    }
+
+    private fun resolveOutputLocation(): OutputLocation {
+        val target = selectedTarget
+        val location = target.defaultLocation()
+        val relativeDir = when {
+            target.isCustom -> properties.getValue(SettingsKeys.CUSTOM_OUTPUT_DIR)?.takeUnless { it.isBlank() }
+                ?: FileConstants.OUTPUT_DIR
+            location != null -> location.relativeDir
+            else -> FileConstants.OUTPUT_DIR
+        }
+
+        val filename = when {
+            target.isCustom -> properties.getValue(SettingsKeys.CUSTOM_OUTPUT_FILENAME)?.takeUnless { it.isBlank() }
+                ?: FileConstants.REPO_CONTEXT_FILENAME
+            location != null -> location.filename
+            else -> FileConstants.REPO_CONTEXT_FILENAME
+        }
+
+        return OutputLocation(relativeDir, filename)
+    }
 
     fun ensureDirectoriesExist() {
+        val location = resolveOutputLocation()
+        var lastAttempted = FileConstants.SOURCE_CONTEXT_DIR
         runCatching {
-            if (!fsOps.exists(sourceDir)) fsOps.createDirectories(sourceDir.toPath())
-            if (!fsOps.exists(outputDir)) fsOps.createDirectories(outputDir.toPath())
+            ensureDirectoryExists(sourceDir)
+            lastAttempted = location.relativeDir
+            val outputDir = Paths.get(basePath, location.relativeDir).normalize().toFile()
+            ensureDirectoryExists(outputDir)
         }.onFailure { e ->
             throw IllegalStateException(
                 MyBundle.message(
                     Strings.ERROR_CREATING_OUTPUT_DIRECTORY,
-                    FileConstants.OUTPUT_DIR,
+                    lastAttempted,
                     e.message ?: MyBundle.message(Strings.ERROR_UNKNOWN)
                 )
             )
@@ -81,11 +117,12 @@ class ContextFileManager(
         isPatchFormatEnabled: Boolean
     ): Result<File> = runCatching {
         val repoFile = getOutputFile()
+        repoFile.parentFile?.let { ensureDirectoryExists(it) }
         var content = if (selectedFilesContent.isEmpty()) {
             MyBundle.message(
                 Strings.NO_FILES_SELECTED_MESSAGE,
                 FileConstants.SOURCE_CONTEXT_DIR,
-                outputFilename
+                repoFile.name
             )
         } else {
             selectedFilesContent.values.joinToString("\n").trimEnd()
@@ -129,12 +166,26 @@ class ContextFileManager(
             contents
         }
 
-    fun getOutputFile(): File = File(outputDir, outputFilename)
+    fun getOutputFile(): File {
+        val location = resolveOutputLocation()
+        val directory = Paths.get(basePath, location.relativeDir).normalize().toFile()
+        return File(directory, location.filename)
+    }
+
+    fun currentOutputTarget(): ContextOutputTarget = selectedTarget
+
+    fun currentOutputLocation(): OutputLocation = resolveOutputLocation()
 
     private fun sanitizeFileName(name: String): String {
         return name
             .replace(File.separatorChar, '_')
             .replace("..", "_")
             .replace(Regex(FileConstants.INVALID_FILENAME_REGEX), "_")
+    }
+
+    private fun ensureDirectoryExists(directory: File) {
+        if (!fsOps.exists(directory)) {
+            fsOps.createDirectories(directory.toPath())
+        }
     }
 }

@@ -3,18 +3,23 @@ package com.github.egarcia.promptpilot.toolWindow
 import com.github.egarcia.promptpilot.FileConstants
 import com.github.egarcia.promptpilot.SettingsKeys
 import com.github.egarcia.promptpilot.file.ContextFileManager
+import com.github.egarcia.promptpilot.file.ContextOutputTarget
+import com.github.egarcia.promptpilot.file.OutputLocation
 import com.github.egarcia.promptpilot.resources.Dimensions
 import com.github.egarcia.promptpilot.resources.MyBundle
 import com.github.egarcia.promptpilot.resources.Strings
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.CollapsiblePanel
 import com.intellij.ui.JBColor
+import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
@@ -23,6 +28,7 @@ import com.intellij.util.ui.UIUtil
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.FlowLayout
+import java.nio.file.Paths
 import javax.swing.BorderFactory
 import javax.swing.Box
 import javax.swing.BoxLayout
@@ -31,6 +37,7 @@ import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.JTextField
 import javax.swing.UIManager
+import javax.swing.event.DocumentEvent
 import javax.swing.table.DefaultTableModel
 
 class PromptPilotToolWindowFactory : ToolWindowFactory {
@@ -58,17 +65,20 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
     }
 
     private fun createMainPanel(project: Project): JPanel {
+        val targetComboBox = createTargetComboBox()
+        val targetPickerPanel = createTargetPickerPanel(project, targetComboBox)
         val topSettingsPanel = createSettingsPanel(
             project,
             MyBundle.message(Strings.SETTINGS_LABEL),
             MyBundle.message(Strings.TOGGLE_PATCH_TEXT),
             MyBundle.message(Strings.CREATE_REPO_CONTEXT_BUTTON),
-            MyBundle.message(Strings.DELETE_REPO_CONTEXT_BUTTON)
+            MyBundle.message(Strings.DELETE_REPO_CONTEXT_BUTTON),
+            targetPickerPanel
         )
 
         val filesScrollPane = createFilesTablePanel(project)
         val fileActionsPanel = createFileActionsPanel(project)
-        val advancedSettingsPanel = createAdvancedOutputSettingsPanel(project) // ← NEW PANEL
+        val advancedSettingsPanel = createAdvancedOutputSettingsPanel(project, targetComboBox) // ← NEW PANEL
 
         val panel = JPanel()
         panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
@@ -87,6 +97,35 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         val outerPanel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0))
         outerPanel.add(panel)
         return outerPanel
+    }
+
+    private fun createTargetComboBox(): ComboBox<ContextOutputTarget> {
+        return ComboBox(ContextOutputTarget.entries.toTypedArray()).apply {
+            renderer = SimpleListCellRenderer.create("") { item -> item?.displayName ?: "" }
+            selectedItem = fileManager.currentOutputTarget()
+            alignmentX = Component.LEFT_ALIGNMENT
+        }
+    }
+
+    private fun createTargetPickerPanel(
+        project: Project,
+        targetComboBox: ComboBox<ContextOutputTarget>
+    ): JPanel {
+        val panel = JPanel()
+        panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
+        panel.alignmentX = Component.LEFT_ALIGNMENT
+
+        val label = JBLabel(MyBundle.message(Strings.OUTPUT_TARGET_LABEL))
+        label.alignmentX = Component.LEFT_ALIGNMENT
+
+        panel.add(label)
+        panel.add(Box.createVerticalStrut(Dimensions.SPACING_X_SMALL))
+        panel.add(targetComboBox)
+
+        if (isDebugLayoutEnabled(project)) panel.border =
+            BorderFactory.createLineBorder(JBColor.YELLOW)
+
+        return panel
     }
 
 
@@ -224,7 +263,8 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         settingsLabelText: String,
         togglePatchText: String,
         createRepoContextButtonText: String,
-        deleteRepoContextButtonText: String
+        deleteRepoContextButtonText: String,
+        targetPickerPanel: JPanel
     ): JPanel {
         val topPanel = JPanel()
         topPanel.layout = BoxLayout(topPanel, BoxLayout.Y_AXIS)
@@ -253,6 +293,7 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         }
 
         listOf(
+            targetPickerPanel, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
             settingsLabel, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
             togglePatch, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
             createRepoContextButton, Box.createVerticalStrut(Dimensions.SPACING_SMALL),
@@ -348,7 +389,10 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         return filesPanel
     }
 
-    private fun createAdvancedOutputSettingsPanel(project: Project): JPanel {
+    private fun createAdvancedOutputSettingsPanel(
+        project: Project,
+        targetComboBox: ComboBox<ContextOutputTarget>
+    ): JPanel {
         val properties = PropertiesComponent.getInstance(project)
 
         val customOutputDirField = JTextField(
@@ -357,6 +401,80 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         val customOutputFileField = JTextField(
             properties.getValue(SettingsKeys.CUSTOM_OUTPUT_FILENAME, FileConstants.REPO_CONTEXT_FILENAME), 20
         )
+        val basePath = project.basePath ?: "."
+
+        val destinationLabel = JBLabel()
+        val destinationStatusLabel = JBLabel()
+        val customHintLabel = JBLabel(MyBundle.message(Strings.OUTPUT_TARGET_CUSTOM_HINT))
+        customHintLabel.foreground = UIUtil.getLabelDisabledForeground()
+
+        fun selectedTarget(): ContextOutputTarget =
+            targetComboBox.selectedItem as? ContextOutputTarget ?: ContextOutputTarget.PROMPT_PILOT
+
+        /**
+         * Resolve the active output location preview.
+         *
+         * Returns an [OutputLocation] describing the relative directory and filename
+         * for the current output target (including honoring custom overrides in project properties).
+         */
+        fun resolvePreviewLocation(): OutputLocation {
+            return fileManager.currentOutputLocation()
+        }
+
+        fun updateDestinationLabels() {
+            val (relativeDir, fileName) = resolvePreviewLocation()
+            destinationLabel.text = MyBundle.message(
+                Strings.OUTPUT_TARGET_ACTIVE_PATH,
+                relativeDir,
+                fileName
+            )
+            val dirFile = Paths.get(basePath, relativeDir).normalize().toFile()
+            if (dirFile.exists()) {
+                destinationStatusLabel.text = MyBundle.message(Strings.OUTPUT_TARGET_STATUS_READY)
+                destinationStatusLabel.foreground = UIUtil.getLabelForeground()
+            } else {
+                destinationStatusLabel.text =
+                    MyBundle.message(Strings.OUTPUT_TARGET_STATUS_MISSING, relativeDir)
+                destinationStatusLabel.foreground = JBColor.RED
+            }
+        }
+
+        fun updateCustomFieldState() {
+            val isCustom = selectedTarget().isCustom
+            customOutputDirField.isEnabled = isCustom
+            customOutputFileField.isEnabled = isCustom
+            customHintLabel.isVisible = isCustom
+        }
+
+        fun JTextField.onChange(block: () -> Unit) {
+            document.addDocumentListener(object : DocumentAdapter() {
+                override fun textChanged(e: DocumentEvent) {
+                    block()
+                }
+            })
+        }
+
+        // Debounced onChange to avoid excessive updates and file system checks
+        fun JTextField.debouncedOnChange(delayMs: Int = 300, block: () -> Unit) {
+            val clientKey = "promptpilot.debounce.timer"
+            this.onChange {
+                (this.getClientProperty(clientKey) as? javax.swing.Timer)?.stop()
+                val debounceTimer = javax.swing.Timer(delayMs) { _ ->
+                    block()
+                }.apply {
+                    isRepeats = false
+                    start()
+                }
+                this.putClientProperty(clientKey, debounceTimer)
+            }
+        }
+
+        customOutputDirField.debouncedOnChange { updateDestinationLabels() }
+        customOutputFileField.debouncedOnChange { updateDestinationLabels() }
+        targetComboBox.addActionListener {
+            updateCustomFieldState()
+            updateDestinationLabels()
+        }
 
         val saveButton = JButton(
             MyBundle.message(Strings.SAVE_OUTPUT_SETTINGS_BUTTON),
@@ -364,8 +482,17 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
         )
         saveButton.alignmentX = Component.LEFT_ALIGNMENT
         saveButton.addActionListener {
-            properties.setValue(SettingsKeys.CUSTOM_OUTPUT_DIR, customOutputDirField.text.trim())
-            properties.setValue(SettingsKeys.CUSTOM_OUTPUT_FILENAME, customOutputFileField.text.trim())
+            val target = selectedTarget()
+            properties.setValue(SettingsKeys.OUTPUT_TARGET_KEY, target.id)
+            if (target.isCustom) {
+                properties.setValue(SettingsKeys.CUSTOM_OUTPUT_DIR, customOutputDirField.text.trim())
+                properties.setValue(
+                    SettingsKeys.CUSTOM_OUTPUT_FILENAME,
+                    customOutputFileField.text.trim()
+                )
+            }
+            fileManager.ensureDirectoriesExist()
+            updateDestinationLabels()
             Messages.showInfoMessage(
                 project,
                 MyBundle.message(Strings.SAVE_OUTPUT_SETTINGS_SUCCESS),
@@ -376,13 +503,25 @@ class PromptPilotToolWindowFactory : ToolWindowFactory {
 
         val contentPanel = JPanel()
         contentPanel.layout = BoxLayout(contentPanel, BoxLayout.Y_AXIS)
+        val customDirLabel = JBLabel(MyBundle.message(Strings.CUSTOM_OUTPUT_DIR_LABEL))
+        val customFileLabel = JBLabel(MyBundle.message(Strings.CUSTOM_OUTPUT_FILE_LABEL))
+
         listOf(
             Box.createVerticalStrut(Dimensions.SPACING_X_SMALL),
-            JBLabel(MyBundle.message(Strings.CUSTOM_OUTPUT_DIR_LABEL)), customOutputDirField,
-            JBLabel(MyBundle.message(Strings.CUSTOM_OUTPUT_FILE_LABEL)), customOutputFileField,
+            destinationLabel,
+            destinationStatusLabel,
+            Box.createVerticalStrut(Dimensions.SPACING_X_SMALL),
+            customDirLabel,
+            customOutputDirField,
+            customFileLabel,
+            customOutputFileField,
+            customHintLabel,
             Box.createVerticalStrut(Dimensions.SPACING_X_SMALL),
             saveButton
-        ).forEach { contentPanel.add(it) }
+        ).forEach { component -> contentPanel.add(component) }
+
+        updateCustomFieldState()
+        updateDestinationLabels()
 
         val expandIcon: Icon = UIManager.getIcon("Tree.collapsedIcon") ?: UIUtil.getTreeCollapsedIcon()
         val collapseIcon: Icon = UIManager.getIcon("Tree.expandedIcon") ?: UIUtil.getTreeExpandedIcon()

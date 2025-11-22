@@ -2,7 +2,13 @@
 
 # PromptPilot Changelog
 
-## [Unreleased]
+## Unreleased
+### Changed
+
+## 1.1.0
+### Added
+- AI Output Target dropdown supporting PromptPilot default, GitHub Copilot, Cursor, and custom destinations with auto-created directories/files.
+- ContextOutputTarget presets plus documentation in README explaining how to switch targets and re-enable JCEF when needed.
 
 ## 1.0.0
 ### Added

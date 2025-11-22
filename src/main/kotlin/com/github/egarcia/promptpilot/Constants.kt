@@ -3,6 +3,7 @@ package com.github.egarcia.promptpilot
 object SettingsKeys {
     const val PATCH_TOGGLE_KEY = "com.github.egarcia.promptpilot.patchFormatToggle"
     const val DEBUG_LAYOUT_KEY = "com.github.egarcia.promptpilot.debugLayout"
+    const val OUTPUT_TARGET_KEY = "promptpilot.output.target"
     const val CUSTOM_OUTPUT_DIR = "promptpilot.custom.output.dir"
     const val CUSTOM_OUTPUT_FILENAME = "promptpilot.custom.output.filename"
 }
@@ -11,6 +12,10 @@ object FileConstants {
     const val OUTPUT_DIR = ".promptpilot"
     const val SOURCE_CONTEXT_DIR = ".promptpilot/source-context"
     const val REPO_CONTEXT_FILENAME = "repo-context.md"
+    const val GITHUB_OUTPUT_DIR = ".github"
+    const val GITHUB_COPILOT_FILENAME = "copilot-instructions.md"
+    const val CURSOR_OUTPUT_DIR = ".cursor"
+    const val CURSOR_FILENAME = "rules"
     const val SAMPLE_CONTEXT_FILENAME = "sample-context.md"
     const val DEFAULT_NEW_FILE = "new-context-file.md"
     const val DEFAULT_FILE_EXTENSION = ".md"
